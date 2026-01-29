@@ -1,11 +1,10 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
 
-* { box-sizing: border-box; }
+* { box-sizing: border-box; margin: 0; padding: 0; }
 body { font-family: 'Inter', sans-serif; letter-spacing: -0.01em; }
 
-/* Tabela Otimizada */
 .table-wrapper { background: #0b0f1a; position: relative; }
-table { width: 100%; border-spacing: 0; }
+table { width: 100%; border-spacing: 0; border-collapse: collapse; }
 th { 
     position: sticky; top: 0; background: #161c2d; 
     color: #475569; font-size: 9px; font-weight: 700; 
@@ -21,9 +20,7 @@ td {
 tr:hover td { background: rgba(59, 130, 246, 0.05); color: #fff; }
 .diff-row { background: rgba(245, 158, 11, 0.03); }
 
-/* Scrollbar Fina */
 ::-webkit-scrollbar { width: 4px; height: 4px; }
-::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: #1e293b; border-radius: 10px; }
 ::-webkit-scrollbar-thumb:hover { background: #3b82f6; }
 

@@ -1,0 +1,18 @@
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700&display=swap');
+
+body { font-family: 'Plus Jakarta Sans', sans-serif; background-image: radial-gradient(at 0% 0%, rgba(30, 58, 138, 0.15) 0, transparent 50%); }
+.card { background: #161c2d; border: 1px solid rgba(255, 255, 255, 0.05); border-radius: 16px; transition: 0.3s; }
+.drop-zone { background: rgba(22, 28, 45, 0.4); border: 2px dashed #2d3748; border-radius: 16px; }
+.btn-primary { background: #2563eb; color: white; padding: 10px 24px; border-radius: 8px; font-weight: 600; cursor: pointer; border: none; }
+.btn-secondary { background: #10b981; color: white; padding: 10px 24px; border-radius: 8px; font-weight: 600; cursor: pointer; border: none; }
+
+.table-wrapper { max-height: 400px; overflow: auto; border-radius: 8px; background: #0f172a; border: 1px solid #1e293b; }
+table { width: 100%; border-collapse: collapse; font-size: 11px; }
+th { position: sticky; top: 0; background: #1e293b; color: #94a3b8; padding: 12px; z-index: 10; text-align: left; }
+td { padding: 10px 12px; border-bottom: 1px solid #1e293b; color: #cbd5e1; }
+tr:nth-child(even) { background: rgba(255, 255, 255, 0.02); }
+
+.diff-cell { color: #f59e0b; background: rgba(245, 158, 11, 0.08) !important; font-weight: 600; }
+
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-thumb { background: #334155; border-radius: 10px; }

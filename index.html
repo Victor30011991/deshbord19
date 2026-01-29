@@ -21,7 +21,7 @@
             </div>
         </div>
         <div class="flex items-center gap-3">
-            <select id="filterStatus" class="bg-slate-800 text-[10px] px-2 py-1.5 rounded border-none outline-none">
+            <select id="filterStatus" class="bg-slate-800 text-[10px] px-2 py-1.5 rounded border-none outline-none text-white">
                 <option value="all">TODOS OS DADOS</option>
                 <option value="diff">SÓ DIVERGÊNCIAS</option>
             </select>
@@ -31,7 +31,6 @@
     </header>
 
     <main class="flex-1 flex overflow-hidden">
-        
         <aside class="w-64 border-r border-white/5 bg-[#0f172a]/50 p-4 flex flex-col gap-6">
             <div>
                 <p class="text-[9px] font-bold text-slate-500 uppercase tracking-widest mb-4">Status de Saúde</p>
@@ -39,7 +38,7 @@
             </div>
             <div class="flex-1 border-t border-white/5 pt-4">
                 <p class="text-[9px] font-bold text-slate-500 uppercase tracking-widest mb-2">Distribuição de Coluna</p>
-                <select id="columnAnalytic" class="w-full bg-slate-800 text-[9px] p-1 rounded mb-3 outline-none"></select>
+                <select id="columnAnalytic" class="w-full bg-slate-800 text-[9px] p-1 rounded mb-3 outline-none text-white"></select>
                 <div class="h-40"><canvas id="chartColumns"></canvas></div>
             </div>
         </aside>
@@ -49,9 +48,8 @@
                 <input type="text" id="tableSearch" placeholder="BUSCAR REGISTRO..." class="bg-transparent border-none text-xs w-full outline-none text-white placeholder:text-slate-600">
                 <div id="diffCounter" class="text-[10px] whitespace-nowrap text-yellow-500 font-mono">0 divergências</div>
             </div>
-            
             <div class="table-wrapper flex-1 overflow-auto">
-                <table id="mainTable">
+                <table>
                     <thead id="tableHeader"></thead>
                     <tbody id="tableBody"></tbody>
                 </table>

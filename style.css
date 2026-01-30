@@ -1,149 +1,46 @@
-/* ============================================================
-   BI.ENTERPRISE AI - CSS PROFISSIONAL REVISADO
-   Focado em Auditoria de Grandes Volumes e Rolagem Dupla
-   ============================================================ */
-
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=JetBrains+Mono:wght@500&display=swap');
 
-/* 1. RESET E ESTRUTURA BASE */
-* { 
-    box-sizing: border-box; 
-    margin: 0; 
-    padding: 0; 
-}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: 'Inter', sans-serif; }
 
-body { 
-    font-family: 'Inter', sans-serif; 
-    background-color: #0b0f1a; 
-    color: #94a3b8;
-    height: 100vh;
-    display: flex;
-    flex-direction: column;
-    overflow: hidden; /* Mantém a estrutura fixa e delega o scroll para a tabela */
-}
+/* Sistema de Abas */
+.tab-content { display: none; }
+.tab-content.active { display: block; animation: fadeIn 0.4s ease; }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
 
-/* 2. BARRAS DE ROLAGEM CUSTOMIZADAS (SCROLLBARS) */
-::-webkit-scrollbar { 
-    width: 10px; 
-    height: 10px; 
-}
-
-::-webkit-scrollbar-track { 
-    background: #0f172a; 
-}
-
-::-webkit-scrollbar-thumb { 
-    background: #1e293b; 
-    border-radius: 5px; 
-    border: 2px solid #0f172a; 
-}
-
-::-webkit-scrollbar-thumb:hover { 
-    background: #3b82f6; 
-}
-
-/* 3. CONTAINER DA TABELA (ROLAGEM DUPLA) */
-.table-container {
-    flex: 1;
-    overflow: auto; /* IMPORTANTE: Ativa scroll vertical e horizontal simultâneos */
-    background: #0b0f1a;
-    position: relative;
-    border-top: 1px solid rgba(255, 255, 255, 0.05);
-}
-
-table {
-    width: 100%;
-    border-collapse: collapse;
-    font-size: 11px;
-    table-layout: auto; /* Permite que colunas expandam conforme o conteúdo */
-}
-
-/* 4. CABEÇALHO FIXO E FILTROS */
-th {
-    position: sticky;
-    top: 0;
-    background: #161c2d;
-    padding: 12px 10px;
-    z-index: 50; /* Garante que os títulos fiquem sempre visíveis no topo */
-    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-}
-
-.filter-select {
-    background: #0f172a;
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    color: #94a3b8;
-    font-size: 9px;
-    padding: 5px;
-    border-radius: 4px;
-    width: 100%;
-    margin-top: 8px;
-    outline: none;
-    cursor: pointer;
-    transition: all 0.2s ease;
-}
-
-.filter-select:focus {
-    border-color: #3b82f6;
-    background: #1e293b;
-}
-
-/* 5. LINHAS E CÉLULAS */
-td {
-    padding: 10px;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.02);
-    white-space: nowrap; /* Impede que o texto quebre linha para manter a tabela compacta */
-}
-
-tr:hover td {
-    background: rgba(59, 130, 246, 0.05);
-    color: #fff;
-}
-
-/* 6. STATUS DE DIVERGÊNCIA (LARANJA) */
-.diff-row {
-    background: rgba(245, 158, 11, 0.08) !important;
-}
-
-.diff-row td {
-    color: #f59e0b !important;
+.tab-btn {
+    padding: 6px 16px;
+    font-size: 10px;
     font-weight: 700;
-}
-
-/* 7. COMPONENTES DE KPI E SIDEBAR */
-.kpi-card {
-    background: rgba(15, 23, 42, 0.4);
-    padding: 20px;
-    border-radius: 4px;
-    border: 1px solid rgba(255, 255, 255, 0.05);
-    display: flex;
-    flex-direction: column;
-}
-
-.kpi-label {
-    text-transform: uppercase;
-    font-size: 8px;
-    font-weight: 800;
     color: #64748b;
-    margin-bottom: 6px;
-    letter-spacing: 0.1em;
+    border-radius: 6px;
+    transition: 0.2s;
+}
+.tab-btn.active { background: #3b82f6; color: white; }
+
+/* Tabela e Cabeçalho Fixo */
+.table-container { background: #0b0f1a; position: relative; }
+table { width: 100%; border-collapse: collapse; font-size: 11px; }
+th { 
+    position: sticky; top: 0; background: #161c2d; padding: 12px 10px; z-index: 50; 
+    border-bottom: 1px solid rgba(255,255,255,0.1); text-align: left;
+}
+td { padding: 10px; border-bottom: 1px solid rgba(255,255,255,0.02); white-space: nowrap; }
+
+/* Filtros de Coluna */
+.filter-select {
+    background: #0f172a; border: 1px solid rgba(255,255,255,0.1);
+    color: #94a3b8; font-size: 9px; padding: 4px; width: 100%; margin-top: 6px; border-radius: 4px;
 }
 
-.kpi-value {
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 24px;
-    font-weight: 600;
-}
+/* Divergências */
+.diff-row { background: rgba(245, 158, 11, 0.08) !important; color: #f59e0b !important; font-weight: 700; }
 
-aside {
-    width: 300px;
-    background: rgba(15, 23, 42, 0.3);
-    border-right: 1px solid rgba(255, 255, 255, 0.05);
-    padding: 24px;
-    overflow-y: auto;
-    shrink: 0;
-}
+/* UI Cards */
+.kpi-card { background: rgba(15, 23, 42, 0.4); padding: 20px; border-radius: 4px; border: 1px solid rgba(255,255,255,0.05); }
+.kpi-label { text-transform: uppercase; font-size: 8px; font-weight: 800; color: #64748b; margin-bottom: 8px; }
+.kpi-value { font-family: 'JetBrains Mono', monospace; font-size: 24px; }
 
-/* 8. UTILITÁRIOS */
-.text-orange-500 { color: #f59e0b !important; }
-.text-emerald-500 { color: #10b981 !important; }
-.hidden { display: none; }
+/* Scrollbars */
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-thumb { background: #1e293b; border-radius: 4px; }

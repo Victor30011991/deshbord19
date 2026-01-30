@@ -17,7 +17,7 @@ document.getElementById('fileInput').addEventListener('change', async (e) => {
         const data = await parseFile(f);
         storage.push({ name: f.name, rows: data });
     }
-    if (storage.length > 0) processFullAudit();
+    if (storage.length > 0) processAudit();
 });
 
 async function parseFile(file) {
@@ -35,7 +35,7 @@ async function parseFile(file) {
     });
 }
 
-function processFullAudit() {
+function processAudit() {
     const base = storage[0].rows;
     const comp = storage[1] ? storage[1].rows : null;
     let diffs = 0;
@@ -43,9 +43,9 @@ function processFullAudit() {
     auditedData = base.map(row => {
         let isDiff = false;
         if (comp) {
-            // Busca inteligente por NOME ou ALUNO
-            const id = (row.ALUNO || row.NOME_ALUNO || "").toString().trim().toLowerCase();
-            const match = comp.find(r => (r.ALUNO || r.NOME_ALUNO || "").toString().trim().toLowerCase() === id);
+            // Busca por NOME ou ALUNO ou MATRÍCULA
+            const id = (row.ALUNO || row.NOME_ALUNO || row.CD_MATRICULA || "").toString().trim().toLowerCase();
+            const match = comp.find(r => (r.ALUNO || r.NOME_ALUNO || r.CD_MATRICULA || "").toString().trim().toLowerCase() === id);
             
             if (!match) isDiff = true;
             else {
@@ -58,41 +58,48 @@ function processFullAudit() {
         return { ...row, _isDiff: isDiff };
     });
 
-    updateDashboard(auditedData, diffs);
-    renderTable(Object.keys(base[0] || {}));
+    updateUI(diffs);
 }
 
-function updateDashboard(data, diffCount) {
-    const total = data.length;
+function updateUI(diffCount) {
+    const total = auditedData.length;
     document.getElementById('kpiRows').innerText = total;
     document.getElementById('kpiDiffs').innerText = diffCount;
     document.getElementById('kpiEquals').innerText = total - diffCount;
 
-    // Chart 1: Acuracidade
-    renderChart('chartStatus', 'doughnut', [diffCount, total - diffCount], ['#f59e0b', '#10b981']);
+    // Dashboard 1: Acuracidade
+    renderChart('chartStatus', 'doughnut', [diffCount, total - diffCount], ['#f59e0b', '#10b981'], ['Diferenças', 'Iguais']);
 
-    // Chart 2: Cidades Top 5
-    const cities = data.reduce((acc, r) => { acc[r.CIDADE] = (acc[r.CIDADE] || 0) + 1; return acc; }, {});
+    // Dashboard 2: Cidades com mais Divergências
+    const cities = auditedData.filter(r => r._isDiff).reduce((acc, r) => { 
+        const c = r.CIDADE || r.MUNICIPIO_ACAO || "N/A";
+        acc[c] = (acc[c] || 0) + 1; return acc; 
+    }, {});
     const topCities = Object.entries(cities).sort((a,b) => b[1] - a[1]).slice(0, 5);
     renderChart('chartCities', 'bar', topCities.map(c => c[1]), ['#3b82f6'], topCities.map(c => c[0]));
 
-    // Chart 3: Status
-    const stats = data.reduce((acc, r) => { const s = r.STATUS || r.SITUACAO_MATRICULA; acc[s] = (acc[s] || 0) + 1; return acc; }, {});
-    renderChart('chartStatusPie', 'pie', Object.values(stats), ['#6366f1', '#8b5cf6', '#ec4899'], Object.keys(stats));
+    // Dashboard 3: Status Pie
+    const stats = auditedData.reduce((acc, r) => { 
+        const s = r.STATUS || r.SITUACAO_MATRICULA || "Indefinido";
+        acc[s] = (acc[s] || 0) + 1; return acc; 
+    }, {});
+    renderChart('chartStatusPie', 'pie', Object.values(stats), ['#6366f1', '#8b5cf6', '#ec4899', '#f43f5e'], Object.keys(stats));
+
+    renderTable(Object.keys(auditedData[0]));
 }
 
-function renderChart(id, type, data, colors, labels = ['Diferenças', 'Iguais']) {
+function renderChart(id, type, data, colors, labels) {
     if (charts[id]) charts[id].destroy();
     charts[id] = new Chart(document.getElementById(id), {
         type: type,
         data: { labels: labels, datasets: [{ data: data, backgroundColor: colors, borderWidth: 0 }] },
-        options: { plugins: { legend: { display: type === 'pie' || type === 'doughnut' } }, cutout: '70%' }
+        options: { plugins: { legend: { display: type !== 'bar', position: 'bottom', labels: { color: '#94a3b8', font: { size: 10 } } } }, cutout: '70%' }
     });
 }
 
 function renderTable(keys) {
-    const tHead = document.getElementById('tableHeader');
-    tHead.innerHTML = `<tr>${keys.map(k => `<th>${k}<select class="filter-select" onchange="applyFilters()"><option value="">TUDO</option>${Array.from(new Set(auditedData.map(r => r[k]))).slice(0,15).map(v => `<option value="${v}">${v}</option>`).join('')}</select></th>`).join('')}</tr>`;
+    const headerKeys = keys.filter(k => !k.startsWith('_'));
+    document.getElementById('tableHeader').innerHTML = `<tr>${headerKeys.map(k => `<th>${k}<select class="filter-select" onchange="applyFilters()"><option value="">TODOS</option>${Array.from(new Set(auditedData.map(r => r[k]))).slice(0,10).map(v => `<option value="${v}">${v}</option>`).join('')}</select></th>`).join('')}</tr>`;
     applyFilters();
 }
 
@@ -107,41 +114,60 @@ function applyFilters() {
         return matchesMode && matchesCols;
     });
 
-    document.getElementById('tableBody').innerHTML = filtered.slice(0, 500).map(r => `
-        <tr class="${r._isDiff ? 'diff-row' : ''}">${keys.map(k => `<td>${r[k] || '---'}</td>`).join('')}</tr>
+    document.getElementById('tableBody').innerHTML = filtered.slice(0, 400).map(r => `
+        <tr class="${r._isDiff ? 'diff-row' : ''}">${keys.map(k => `<td>${r[k] || ''}</td>`).join('')}</tr>
     `).join('');
 }
 
 document.getElementById('btnAi').onclick = async () => {
     const key = document.getElementById('geminiKey').value;
-    if (!key) return alert("API Key ausente.");
+    if (!key) return alert("Por favor, insira a Gemini API Key.");
+    
     const aiTxt = document.getElementById('aiTxt');
-    document.getElementById('aiLoader').classList.remove('hidden');
+    const loader = document.getElementById('aiLoader');
+    loader.classList.remove('hidden');
     switchTab('tab-ai');
 
-    // Monta o prompt com diagnóstico de coluna
-    const prompt = `Analise a estrutura: Arquivo 1 colunas: [${Object.keys(storage[0].rows[0]).join(', ')}]. Arquivo 2: [${storage[1] ? Object.keys(storage[1].rows[0]).join(', ') : 'Nenhum'}]. Se o sistema não conseguiu relacionar os nomes (NOME_ALUNO vs ALUNO), explique ao usuário como ajustar o Excel. Se estiverem relacionados, dê o parecer sobre as divergências encontradas e a solução.`;
+    // Validação Estrutural para a IA
+    const f1Cols = storage[0] ? Object.keys(storage[0].rows[0]) : [];
+    const f2Cols = storage[1] ? Object.keys(storage[1].rows[0]) : [];
+    
+    const prompt = `
+        Aja como um Auditor de Dados. 
+        Estrutura atual:
+        - Arquivo 1 colunas: [${f1Cols.join(', ')}]
+        - Arquivo 2 colunas: [${f2Cols.join(', ')}]
+        - Registros: ${auditedData.length}
+        - Divergências: ${auditedData.filter(r => r._isDiff).length}
+
+        INSTRUÇÕES:
+        1. Se as colunas "ALUNO" ou "NOME_ALUNO" não existirem em ambos, ou se as colunas forem totalmente incompatíveis, PARE a análise e escreva um "GUIA DE CORREÇÃO" para o usuário ajustar o Excel.
+        2. Se os dados forem compatíveis, forneça:
+           - PARECER DAS DIFERENÇAS: O que mudou e por quê.
+           - ANÁLISE DE RELAÇÕES: Como os dados se cruzam.
+           - CONCLUSÃO: Um resumo estratégico sobre a integridade do relatório.
+    `;
 
     try {
         const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${key}`, {
             method: 'POST', body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
         });
         const data = await res.json();
-        aiTxt.innerHTML = data.candidates[0].content.parts[0].text.replace(/\n/g, '<br>').replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
-    } catch (e) { aiTxt.innerHTML = "Erro ao processar o relatório."; }
-    finally { document.getElementById('aiLoader').classList.add('hidden'); }
+        aiTxt.innerHTML = data.candidates[0].content.parts[0].text.replace(/\n/g, '<br>').replace(/\*\*(.*?)\*\*/g, '<b class="text-white">$1</b>');
+    } catch (e) { aiTxt.innerHTML = "Erro na conexão com a IA. Verifique sua chave."; }
+    finally { loader.classList.add('hidden'); }
 };
 
 function exportExcel() {
     const ws = XLSX.utils.json_to_sheet(auditedData);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Auditoria");
-    XLSX.writeFile(wb, "BI_Enterprise.xlsx");
+    XLSX.writeFile(wb, "BI_Auditoria_Export.xlsx");
 }
 
 function exportPDF() {
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF('l', 'mm', 'a4');
-    doc.autoTable({ html: '#mainTable', theme: 'grid', styles: { fontSize: 7 } });
-    doc.save("BI_Enterprise.pdf");
+    doc.autoTable({ html: '#mainTable', theme: 'grid', styles: { fontSize: 6 } });
+    doc.save("Relatorio_Auditoria.pdf");
 }

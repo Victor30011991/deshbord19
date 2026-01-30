@@ -1,20 +1,25 @@
 @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap');
 
-body { font-family: 'Plus Jakarta Sans', sans-serif; overflow: hidden; }
+body { font-family: 'Plus Jakarta Sans', sans-serif; }
 
-.nav-link { padding: 10px 20px; font-size: 10px; font-weight: 800; color: #64748b; border-radius: 12px; transition: 0.3s; }
+.nav-link { padding: 8px 16px; font-size: 10px; font-weight: 800; color: #64748b; border-radius: 10px; transition: 0.2s; text-transform: uppercase; }
 .nav-link.active { color: #fff; background: #3b82f6; box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3); }
 
 .tab-content { display: none; height: 100%; width: 100%; }
-.tab-content.active { display: flex; flex-direction: column; animation: fadeIn 0.3s ease-out; }
+.tab-content.active { display: flex; flex-direction: column; animation: fadeIn 0.2s ease-out; }
 
-.filter-btn { padding: 6px 16px; border-radius: 8px; font-size: 10px; font-weight: 700; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.05); transition: 0.2s; }
-.filter-btn.active { background: #3b82f6; color: white; border-color: #3b82f6; }
+.panel { background: #0f172a; border-radius: 16px; border: 1px solid rgba(255,255,255,0.05); overflow: hidden; display: flex; flex-direction: column; }
+.panel-header { background: rgba(0,0,0,0.2); padding: 12px; font-size: 9px; font-weight: 800; text-transform: uppercase; border-bottom: 1px solid rgba(255,255,255,0.05); letter-spacing: 1px; }
 
-th { padding: 16px; font-size: 10px; color: #94a3b8; }
-td { padding: 12px 16px; border-bottom: 1px solid rgba(255,255,255,0.02); vertical-align: middle; }
+.f-btn { padding: 6px 14px; border-radius: 8px; font-size: 9px; font-weight: 800; border: 1px solid transparent; background: rgba(255,255,255,0.02); transition: 0.2s; text-transform: uppercase; }
+.f-btn.active { background: white; color: black; border-color: white; }
 
-.custom-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
+table thead th { position: sticky; top: 0; background: #161e31; padding: 10px; color: #475569; z-index: 10; text-align: left; }
+table tbody td { padding: 10px; border-bottom: 1px solid rgba(255,255,255,0.02); }
+
+.badge { padding: 3px 8px; border-radius: 5px; font-size: 8px; font-weight: 900; text-transform: uppercase; }
+
+.custom-scrollbar::-webkit-scrollbar { width: 4px; }
 .custom-scrollbar::-webkit-scrollbar-thumb { background: #1e293b; border-radius: 10px; }
 
-@keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }

@@ -1,24 +1,124 @@
+/* Importação da Fonte Inter para um aspeto moderno e limpo */
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
 
-* { box-sizing: border-box; margin: 0; padding: 0; }
-body { font-family: 'Inter', sans-serif; letter-spacing: -0.01em; }
+/* Reset e Configurações Globais */
+* { 
+    box-sizing: border-box; 
+    margin: 0; 
+    padding: 0; 
+}
 
-table { width: 100%; border-spacing: 0; border-collapse: collapse; }
+body { 
+    font-family: 'Inter', sans-serif; 
+    letter-spacing: -0.01em; 
+    background-color: #0b0f1a; /* Fundo Ultra Dark */
+    color: #94a3b8;
+}
+
+/* Estilização dos Cards de KPI (Números do Topo) */
+h2 {
+    letter-spacing: -0.05em;
+}
+
+.grid > div {
+    background: rgba(15, 23, 42, 0.4);
+    backdrop-filter: blur(4px);
+    transition: transform 0.2s ease;
+}
+
+.grid > div:hover {
+    transform: translateY(-2px);
+    border-color: rgba(59, 130, 246, 0.3);
+}
+
+/* Tabela de Alta Densidade */
+.table-wrapper { 
+    background: #0b0f1a; 
+    position: relative; 
+}
+
+table { 
+    width: 100%; 
+    border-spacing: 0; 
+    border-collapse: collapse; 
+    table-layout: auto;
+}
+
+/* Cabeçalho Fixo (Sticky Header) */
 th { 
-    position: sticky; top: 0; background: #161c2d; 
-    color: #475569; font-size: 9px; font-weight: 700; 
-    text-transform: uppercase; padding: 12px 10px; 
-    text-align: left; z-index: 10; border-bottom: 1px solid rgba(255,255,255,0.05);
+    position: sticky; 
+    top: 0; 
+    background: #161c2d; 
+    color: #475569; 
+    font-size: 9px; 
+    font-weight: 700; 
+    text-transform: uppercase; 
+    padding: 12px 10px; 
+    text-align: left; 
+    z-index: 10; 
+    border-bottom: 1px solid rgba(255,255,255,0.05);
+    white-space: nowrap;
 }
+
+/* Células da Tabela */
 td { 
-    padding: 8px 10px; border-bottom: 1px solid rgba(255,255,255,0.02); 
-    font-size: 11px; color: #94a3b8; white-space: nowrap;
-    max-width: 200px; overflow: hidden; text-overflow: ellipsis;
+    padding: 8px 10px; 
+    border-bottom: 1px solid rgba(255,255,255,0.02); 
+    font-size: 11px; 
+    color: #94a3b8; 
+    white-space: nowrap;
+    max-width: 250px; 
+    overflow: hidden; 
+    text-overflow: ellipsis; /* Corta o texto longo com "..." */
 }
 
-tr:hover td { background: rgba(59, 130, 246, 0.05); color: #fff; }
-.diff-row { background: rgba(245, 158, 11, 0.03); }
+/* Destaque para Linhas com Divergência */
+.diff-row { 
+    background: rgba(245, 158, 11, 0.03); 
+}
 
-::-webkit-scrollbar { width: 4px; height: 4px; }
-::-webkit-scrollbar-thumb { background: #1e293b; border-radius: 10px; }
-::-webkit-scrollbar-thumb:hover { background: #3b82f6; }
+tr:hover td { 
+    background: rgba(59, 130, 246, 0.05); 
+    color: #fff; 
+}
+
+/* Estilização dos Selects e Inputs */
+select, input {
+    transition: all 0.2s ease;
+    border: 1px solid transparent;
+}
+
+select:focus, input:focus {
+    border-color: rgba(59, 130, 246, 0.5);
+    background-color: #1e293b;
+}
+
+/* Gráficos */
+canvas { 
+    max-width: 100% !important; 
+    filter: drop-shadow(0 4px 6px rgba(0,0,0,0.1));
+}
+
+/* Barra de Rolagem (Scrollbar) Minimalista */
+::-webkit-scrollbar { 
+    width: 5px; 
+    height: 5px; 
+}
+
+::-webkit-scrollbar-track { 
+    background: transparent; 
+}
+
+::-webkit-scrollbar-thumb { 
+    background: #1e293b; 
+    border-radius: 10px; 
+}
+
+::-webkit-scrollbar-thumb:hover { 
+    background: #3b82f6; 
+}
+
+/* Tooltip nativo (Aparece ao passar o rato em textos cortados) */
+td[title]:hover {
+    cursor: help;
+}

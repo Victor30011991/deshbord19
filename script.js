@@ -6,16 +6,17 @@ function switchTab(id) {
     document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
     document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
     document.getElementById(id).classList.add('active');
-    const mapping = {'tab-charts': 'btn-charts', 'tab-table': 'btn-table', 'tab-ai': 'btn-ai-tab'};
-    document.getElementById(mapping[id]).classList.add('active');
+    document.getElementById('btn-' + id.split('-')[1]).classList.add('active');
     
-    // IMPORTANTE: Redesenha os gráficos ao mudar de aba para evitar o erro visual
-    if(id === 'tab-charts') Object.values(charts).forEach(c => c.resize());
+    // QA: Força o redimensionamento para evitar gráficos quebrados
+    setTimeout(() => {
+        Object.values(charts).forEach(chart => chart.resize());
+    }, 50);
 }
 
 document.getElementById('fileInput').addEventListener('change', async (e) => {
     const files = Array.from(e.target.files);
-    if (files.length < 2) return alert("Selecione 2 arquivos.");
+    if (files.length < 2) return alert("Erro: São necessários 2 arquivos para o cruzamento.");
     
     storage = [];
     for (let f of files) {
@@ -44,67 +45,67 @@ function processAudit() {
     const base = storage[0].rows;
     const comp = storage[1].rows;
 
-    const findKey = (row, kws) => Object.keys(row).find(k => kws.some(kw => k.toUpperCase().includes(kw.toUpperCase())));
+    const fk = (row, kws) => Object.keys(row).find(k => kws.some(kw => k.toUpperCase().includes(kw.toUpperCase())));
     
-    const colIdB = findKey(base[0], ["ALUNO", "NOME", "MATRICULA", "ID"]);
-    const colStB = findKey(base[0], ["STATUS", "SITUACAO", "RESULTADO"]);
-    const colIdC = findKey(comp[0], ["ALUNO", "NOME", "MATRICULA", "ID"]);
-    const colStC = findKey(comp[0], ["STATUS", "SITUACAO", "RESULTADO"]);
-    const colCid = findKey(base[0], ["CIDADE", "MUNICIPIO"]);
+    const cIdB = fk(base[0], ["ALUNO", "NOME", "MATRICULA", "ID"]);
+    const cStB = fk(base[0], ["STATUS", "SITUACAO", "RESULTADO"]);
+    const cIdC = fk(comp[0], ["ALUNO", "NOME", "MATRICULA", "ID"]);
+    const cStC = fk(comp[0], ["STATUS", "SITUACAO", "RESULTADO"]);
+    const cCid = fk(base[0], ["CIDADE", "MUNICIPIO", "LOCAL"]);
 
     auditedData = base.map(row => {
-        const valB = String(row[colIdB] || "").toLowerCase().trim();
-        const stB = String(row[colStB] || "").trim();
-        const match = comp.find(r => String(r[colIdC] || "").toLowerCase().trim() === valB);
+        const idB = String(row[cIdB] || "").toLowerCase().trim();
+        const stB = String(row[cStB] || "").trim();
+        const match = comp.find(r => String(r[cIdC] || "").toLowerCase().trim() === idB);
         
-        let audit = "ausente";
-        if (match) audit = (stB.toLowerCase() === String(match[colStC]).toLowerCase().trim()) ? "identico" : "divergente";
-        
-        return { ...row, _audit: audit, _stOrig: stB };
+        let res = "ausente";
+        if (match) {
+            res = (stB.toLowerCase() === String(match[cStC]).toLowerCase().trim()) ? "identico" : "divergente";
+        }
+        return { ...row, _audit: res, _stOrig: stB };
     });
 
-    updateDashboard(colCid);
+    updateDashboard(cCid);
 }
 
-function updateDashboard(colCid) {
-    const diffs = auditedData.filter(r => r._audit === 'divergente').length;
-    const equals = auditedData.filter(r => r._audit === 'identico').length;
-    const miss = auditedData.filter(r => r._audit === 'ausente').length;
-    const total = auditedData.length;
+function updateDashboard(cCid) {
+    const d = auditedData.filter(r => r._audit === 'divergente').length;
+    const e = auditedData.filter(r => r._audit === 'identico').length;
+    const m = auditedData.filter(r => r._audit === 'ausente').length;
+    const t = auditedData.length;
 
-    document.getElementById('kpiRows').innerText = total;
-    document.getElementById('kpiDiffs').innerText = diffs;
-    document.getElementById('kpiEquals').innerText = equals;
-    document.getElementById('kpiAccuracy').innerText = ((equals / total) * 100).toFixed(1) + "%";
+    document.getElementById('kpiRows').innerText = t;
+    document.getElementById('kpiDiffs').innerText = d;
+    document.getElementById('kpiEquals').innerText = e;
+    document.getElementById('kpiAccuracy').innerText = ((e/t)*100).toFixed(1) + "%";
 
-    // Gráfico de Status (Doughnut)
-    renderChart('chartStatus', 'doughnut', [diffs, equals, miss], ['#f59e0b', '#10b981', '#334155'], ['Divergente', 'Conforme', 'Ausente']);
-
-    // Gráfico de Cidades (Barra Horizontal)
-    const cityMap = auditedData.reduce((a, r) => { const c = r[colCid] || "N/A"; a[c] = (a[c] || 0) + 1; return a; }, {});
+    // QA: Garantir que o contexto do canvas existe antes de renderizar
+    drawChart('chartStatus', 'doughnut', [d, e, m], ['#f59e0b', '#10b981', '#334155'], ['Divergente', 'Conforme', 'Ausente']);
+    
+    const cityMap = auditedData.reduce((a, r) => { const c = r[cCid] || "N/A"; a[c] = (a[c] || 0) + 1; return a; }, {});
     const topCid = Object.entries(cityMap).sort((a,b) => b[1] - a[1]).slice(0, 10);
-    renderChart('chartCities', 'bar', topCid.map(c => c[1]), '#3b82f6', topCid.map(c => c[0]), 'y');
+    drawChart('chartCities', 'bar', topCid.map(c => c[1]), '#3b82f6', topCid.map(c => c[0]), 'y');
 
-    // Gráfico de Área (Linha/Tendência de Situações)
     const sitMap = auditedData.reduce((a, r) => { const s = r._stOrig || "Outros"; a[s] = (a[s] || 0) + 1; return a; }, {});
     const topSit = Object.entries(sitMap).sort((a,b) => b[1] - a[1]).slice(0, 6);
-    renderChart('chartSituations', 'line', topSit.map(s => s[1]), '#8b5cf6', topSit.map(s => s[0]));
+    drawChart('chartSituations', 'line', topSit.map(s => s[1]), '#8b5cf6', topSit.map(s => s[0]));
 
     renderTable();
-    generateInsights(total, diffs, equals);
+    genReport(t, d, e);
 }
 
-function renderChart(id, type, data, color, labels, axis = 'x') {
-    const ctx = document.getElementById(id).getContext('2d');
+function drawChart(id, type, data, color, labels, axis = 'x') {
+    const el = document.getElementById(id);
+    if (!el) return;
     if (charts[id]) charts[id].destroy();
     
-    charts[id] = new Chart(ctx, {
+    charts[id] = new Chart(el.getContext('2d'), {
         type: type,
         data: {
             labels: labels,
             datasets: [{
                 data: data,
-                backgroundColor: Array.isArray(color) ? color : color + '44',
+                backgroundColor: Array.isArray(color) ? color : color + '33',
                 borderColor: Array.isArray(color) ? 'transparent' : color,
                 borderWidth: 2,
                 fill: true,
@@ -115,10 +116,10 @@ function renderChart(id, type, data, color, labels, axis = 'x') {
             indexAxis: axis,
             responsive: true,
             maintainAspectRatio: false,
-            plugins: { legend: { display: type === 'doughnut', position: 'bottom', labels: { color: '#94a3b8', font: { size: 9 } } } },
+            plugins: { legend: { display: type === 'doughnut', position: 'bottom', labels: { color: '#64748b', font: { size: 10 } } } },
             scales: type !== 'doughnut' ? {
-                x: { grid: { display: false }, ticks: { color: '#64748b' } },
-                y: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#64748b' } }
+                x: { ticks: { color: '#475569' }, grid: { display: false } },
+                y: { ticks: { color: '#475569' }, grid: { color: 'rgba(255,255,255,0.03)' } }
             } : {}
         }
     });
@@ -127,22 +128,25 @@ function renderChart(id, type, data, color, labels, axis = 'x') {
 function renderTable() {
     const mode = document.getElementById('viewFilter').value;
     const keys = Object.keys(auditedData[0]).filter(k => !k.startsWith('_'));
-    document.getElementById('tableHeader').innerHTML = keys.map(k => `<th class="px-4 py-3">${k}</th>`).join('');
+    document.getElementById('tableHeader').innerHTML = `<tr>${keys.map(k => `<th class="px-4 py-3">${k}</th>`).join('')}</tr>`;
     
     const filtered = auditedData.filter(r => mode === 'all' ? true : (mode === 'diff' ? r._audit === 'divergente' : r._audit === 'identico'));
-    document.getElementById('tableBody').innerHTML = filtered.slice(0, 100).map(r => `
+    document.getElementById('tableBody').innerHTML = filtered.slice(0, 150).map(r => `
         <tr class="border-b border-white/5 ${r._audit === 'divergente' ? 'bg-orange-500/10 text-orange-500' : (r._audit === 'identico' ? 'text-emerald-500' : '')}">
             ${keys.map(k => `<td class="px-4 py-3">${r[k] || ''}</td>`).join('')}
         </tr>
     `).join('');
 }
 
-function generateInsights(total, diffs, equals) {
+function genReport(t, d, e) {
     document.getElementById('aiTxt').innerHTML = `
-        <h2 class="text-xl font-bold text-white mb-4">Análise Geral</h2>
-        <p class="mb-4">Identificamos <b>${total}</b> registros totais. A conformidade está em <b>${((equals/total)*100).toFixed(1)}%</b>.</p>
-        <div class="p-4 bg-orange-500/10 border-l-4 border-orange-500 rounded text-orange-200">
-            Existem <b>${diffs}</b> divergências críticas que devem ser revisadas para garantir a integridade dos dados acadêmicos.
+        <h2 class="text-xl font-bold text-white mb-6 uppercase tracking-widest">Parecer Técnico</h2>
+        <div class="space-y-4 text-slate-300">
+            <p>O motor de análise processou <strong>${t} registros</strong> em tempo real.</p>
+            <div class="p-6 bg-black/30 rounded-2xl border-l-4 border-blue-500">
+                A conformidade atual é de <strong>${((e/t)*100).toFixed(1)}%</strong>. Foram detectadas <strong>${d} inconsistências</strong> de status que requerem saneamento imediato.
+            </div>
+            <p class="text-xs italic text-slate-500">Recomendação: Exportar o relatório de divergências (Excel) e realizar a retificação manual nas cidades com maior volume de erros identificadas no dashboard.</p>
         </div>
     `;
 }

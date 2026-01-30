@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>BI Analytics Minimalist</title>
+    <title>BI.Minimalist</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
@@ -23,6 +23,10 @@
             </div>
         </div>
         <div class="flex items-center gap-3">
+            <div class="flex items-center gap-2 px-3 py-1 bg-white/5 rounded border border-white/10">
+                <input type="checkbox" id="cleanDataMode" class="w-3 h-3 accent-blue-500 cursor-pointer">
+                <label for="cleanDataMode" class="text-[9px] uppercase font-bold text-slate-300 cursor-pointer">Limpeza DS</label>
+            </div>
             <select id="filterStatus" class="bg-slate-800 text-[10px] px-2 py-1.5 rounded border-none outline-none text-white">
                 <option value="all">TODOS OS DADOS</option>
                 <option value="diff">SÓ DIVERGÊNCIAS</option>
@@ -38,7 +42,7 @@
     <main class="flex-1 flex overflow-hidden">
         <aside class="w-64 border-r border-white/5 bg-[#0f172a]/50 p-4 flex flex-col gap-6">
             <div>
-                <p class="text-[9px] font-bold text-slate-500 uppercase tracking-widest mb-4">Proporção de Saúde</p>
+                <p class="text-[9px] font-bold text-slate-500 uppercase tracking-widest mb-4">Saúde dos Dados</p>
                 <div class="h-40"><canvas id="chartDiff"></canvas></div>
             </div>
             <div class="flex-1 border-t border-white/5 pt-4">
@@ -68,20 +72,30 @@
                 </div>
             </div>
 
-            <div class="p-2 px-4 border-b border-white/5 flex items-center justify-between">
+            <div class="p-2 px-4 border-b border-white/5 flex items-center justify-between bg-[#0f172a]/40">
                 <input type="text" id="tableSearch" placeholder="FILTRAR REGISTROS..." class="bg-transparent border-none text-xs w-full outline-none text-white placeholder:text-slate-600">
-                <div id="diffCounter" class="text-[10px] whitespace-nowrap text-yellow-500 font-mono uppercase">0 Divergências</div>
+                <div class="flex items-center gap-4 text-[9px] font-mono uppercase">
+                    <div class="flex items-center gap-1.5">
+                        <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                        <span class="text-slate-400">Iguais:</span>
+                        <span id="equalCounter" class="text-emerald-500 font-bold">0</span>
+                    </div>
+                    <div class="flex items-center gap-1.5">
+                        <span class="w-1.5 h-1.5 rounded-full bg-yellow-500"></span>
+                        <span class="text-slate-400">Divergências:</span>
+                        <span id="diffCounter" class="text-yellow-500 font-bold">0</span>
+                    </div>
+                </div>
             </div>
             
             <div class="table-wrapper flex-1 overflow-auto">
-                <table>
+                <table id="mainTable">
                     <thead id="tableHeader"></thead>
                     <tbody id="tableBody"></tbody>
                 </table>
             </div>
         </section>
     </main>
-
     <script src="script.js"></script>
 </body>
 </html>

@@ -2,7 +2,6 @@ let storage = [];
 let auditedData = [];
 let chartStatus = null;
 
-// Navegação entre abas
 function switchTab(tabId) {
     document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
     document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
@@ -10,7 +9,6 @@ function switchTab(tabId) {
     event.currentTarget.classList.add('active');
 }
 
-// Leitura de Arquivos (CSV, XLSX)
 document.getElementById('fileInput').addEventListener('change', async (e) => {
     const files = Array.from(e.target.files);
     storage = [];
@@ -24,12 +22,7 @@ document.getElementById('fileInput').addEventListener('change', async (e) => {
 async function parseFile(file) {
     return new Promise((resolve) => {
         if (file.name.endsWith('.csv')) {
-            Papa.parse(file, {
-                header: true,
-                skipEmptyLines: true,
-                dynamicTyping: true,
-                complete: (results) => resolve(results.data)
-            });
+            Papa.parse(file, { header: true, skipEmptyLines: true, complete: (res) => resolve(res.data) });
         } else {
             const reader = new FileReader();
             reader.onload = (e) => {
@@ -41,8 +34,8 @@ async function parseFile(file) {
     });
 }
 
-// Lógica de Comparação Q.A.
 function processData() {
+    if (storage.length === 0) return;
     const base = storage[0].rows;
     const comp = storage[1] ? storage[1].rows : null;
     const keys = Object.keys(base[0] || {});
@@ -50,45 +43,29 @@ function processData() {
 
     auditedData = base.map(row => {
         let isDiff = false;
-        let diffDetail = "";
-
         if (comp) {
-            // Busca cruzada: ALUNO (Janeiro) vs NOME_ALUNO (Dezembro)
-            const id1 = (row.ALUNO || row.NOME_ALUNO || "").toString().trim();
-            const match = comp.find(r => (r.ALUNO || r.NOME_ALUNO || "").toString().trim() === id1);
+            // QA: Busca por múltiplos campos caso a coluna mude
+            const id1 = (row.ALUNO || row.NOME_ALUNO || row.CD_MATRICULA || "").toString().trim();
+            const match = comp.find(r => (r.ALUNO || r.NOME_ALUNO || r.CD_MATRICULA || "").toString().trim() === id1);
 
-            if (!match) {
-                isDiff = true;
-                diffDetail = "Não encontrado no arquivo de comparação";
-            } else {
+            if (!match) isDiff = true;
+            else {
                 const s1 = (row.STATUS || row.SITUACAO_MATRICULA || "").toString();
                 const s2 = (match.STATUS || match.SITUACAO_MATRICULA || "").toString();
-                if (s1 !== s2) {
-                    isDiff = true;
-                    diffDetail = `Status alterado: ${s1} ⮕ ${s2}`;
-                }
+                if (s1 !== s2) isDiff = true;
             }
         }
         if (isDiff) diffs++;
-        return { ...row, _isDiff: isDiff, _detail: diffDetail };
+        return { ...row, _isDiff: isDiff };
     });
 
     renderTable(keys);
     updateDashboard(auditedData.length, diffs);
 }
 
-// Renderização e Filtros de Seta
 function renderTable(keys) {
     const tHead = document.getElementById('tableHeader');
-    tHead.innerHTML = `<tr>${keys.map(k => `
-        <th>
-            ${k}
-            <select class="filter-select" onchange="applyFilters()">
-                <option value="">TUDO</option>
-                ${Array.from(new Set(auditedData.map(r => r[k]))).slice(0, 15).map(v => `<option value="${v}">${v}</option>`).join('')}
-            </select>
-        </th>
-    `).join('')}</tr>`;
+    tHead.innerHTML = `<tr>${keys.map(k => `<th>${k}<select class="filter-select" onchange="applyFilters()"><option value="">TUDO</option>${Array.from(new Set(auditedData.map(r => r[k]))).slice(0,10).map(v => `<option value="${v}">${v}</option>`).join('')}</select></th>`).join('')}</tr>`;
     applyFilters();
 }
 
@@ -100,8 +77,13 @@ function applyFilters() {
     const filtered = auditedData.filter(row => {
         const matchesMode = mode === 'all' || (mode === 'diff' ? row._isDiff : !row._isDiff);
         const matchesCols = Array.from(selects).every((sel, i) => sel.value === "" || String(row[keys[i]]) === sel.value);
-        return matchesMode && matchesCols;
+        return matchesViewMode(row, mode) && matchesCols;
     });
+
+    function matchesViewMode(row, mode) {
+        if(mode === 'all') return true;
+        return mode === 'diff' ? row._isDiff : !row._isDiff;
+    }
 
     document.getElementById('tableBody').innerHTML = filtered.slice(0, 500).map(r => `
         <tr class="${r._isDiff ? 'diff-row' : ''}">
@@ -110,33 +92,42 @@ function applyFilters() {
     `).join('');
 }
 
-// Gráficos e KPIs
 function updateDashboard(total, diffs) {
-    document.getElementById('kpiRows').innerText = total.toLocaleString();
-    document.getElementById('kpiDiffs').innerText = diffs.toLocaleString();
+    document.getElementById('kpiRows').innerText = total;
+    document.getElementById('kpiDiffs').innerText = diffs;
     document.getElementById('kpiAcc').innerText = total > 0 ? ((total - diffs) / total * 100).toFixed(1) + "%" : "0%";
-
+    
     if (chartStatus) chartStatus.destroy();
     chartStatus = new Chart(document.getElementById('chartStatus'), {
         type: 'doughnut',
-        data: { datasets: [{ data: [diffs, total - diffs], backgroundColor: ['#f59e0b', '#10b981'], borderWidth: 0 }] },
-        options: { cutout: '85%' }
+        data: { datasets: [{ data: [diffs, total-diffs], backgroundColor: ['#f59e0b', '#10b981'], borderWidth: 0 }] },
+        options: { cutout: '80%' }
     });
 }
 
-// Integração com IA Gemini
+// IA COM PARECER TÉCNICO E DIAGNÓSTICO DE ERRO
 document.getElementById('btnAi').onclick = async () => {
     const key = document.getElementById('geminiKey').value;
-    if (!key) return alert("Insira a chave da API!");
+    if (!key) return alert("API Key necessária.");
 
     const aiTxt = document.getElementById('aiTxt');
-    const status = document.getElementById('aiStatus');
-    
-    status.classList.remove('hidden');
-    aiTxt.innerHTML = "Processando parecer técnico...";
+    const loader = document.getElementById('aiLoader');
+    loader.classList.remove('hidden');
     switchTab('tab-ai');
 
-    const prompt = `Analise os dados de auditoria: Total ${auditedData.length}, Divergências ${auditedData.filter(r => r._isDiff).length}. Gere um relatório com resumo, análise das divergências encontradas nos arquivos de produção e uma conclusão com solução técnica.`;
+    // Validação de colunas para a IA ajudar o usuário
+    const colsFile1 = storage[0] ? Object.keys(storage[0].rows[0]).join(', ') : 'Nenhum';
+    const colsFile2 = storage[1] ? Object.keys(storage[1].rows[0]).join(', ') : 'Nenhum';
+
+    const prompt = `
+        Analise a estrutura de auditoria abaixo.
+        Arquivo 1 Colunas: ${colsFile1}
+        Arquivo 2 Colunas: ${colsFile2}
+        Estatísticas: ${auditedData.length} registros, ${auditedData.filter(r => r._isDiff).length} divergências.
+
+        Se as colunas forem muito diferentes, explique ao usuário o que ele deve corrigir no Excel (quais colunas renomear).
+        Se estiverem certas, dê o parecer técnico sobre os erros encontrados, igualdades e uma conclusão de solução.
+    `;
 
     try {
         const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${key}`, {
@@ -144,17 +135,26 @@ document.getElementById('btnAi').onclick = async () => {
             body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
         });
         const data = await res.json();
-        aiTxt.innerHTML = data.candidates[0].content.parts[0].text.replace(/\n/g, '<br>').replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+        const text = data.candidates[0].content.parts[0].text;
+        aiTxt.innerHTML = text.replace(/\n/g, '<br>').replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
     } catch (e) {
-        aiTxt.innerHTML = "Erro ao conectar com a IA.";
+        aiTxt.innerHTML = "Erro ao gerar parecer. Verifique a chave.";
     } finally {
-        status.classList.add('hidden');
+        loader.classList.add('hidden');
     }
 };
 
+// EXPORTAR QUALQUER DADO
 function exportExcel() {
     const ws = XLSX.utils.json_to_sheet(auditedData);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Auditoria");
-    XLSX.writeFile(wb, "BI_Enterprise_Auditoria.xlsx");
+    XLSX.writeFile(wb, "BI_Enterprise_Data.xlsx");
+}
+
+function exportPDF() {
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF('l', 'mm', 'a4');
+    doc.autoTable({ html: '#mainTable', theme: 'grid', styles: { fontSize: 7 } });
+    doc.save("Relatorio_Auditoria.pdf");
 }

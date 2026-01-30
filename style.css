@@ -1,191 +1,26 @@
-/* Importação de Fonte Moderna */
-@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;800&display=swap');
 
-/* Configurações Globais */
-* {
-    box-sizing: border-box;
-    margin: 0;
-    padding: 0;
-    -webkit-font-smoothing: antialiased;
-}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: 'Plus Jakarta Sans', sans-serif; background: #0b0f1a; }
 
-body {
-    font-family: 'Plus Jakarta Sans', sans-serif;
-    background-color: #0b0f1a;
-    color: #94a3b8;
-    overflow: hidden; /* Impede scroll na página inteira para manter o layout fixo */
-}
+.tab-content { display: none; height: 100%; position: absolute; width: 100%; top: 0; left: 0; }
+.tab-content.active { display: block; animation: slideUp 0.3s ease-out; }
 
-/* Animações */
-@keyframes fadeIn {
-    from { opacity: 0; transform: translateY(10px); }
-    to { opacity: 1; transform: translateY(0); }
-}
+.tab-btn { padding: 10px 20px; font-size: 10px; font-weight: 800; color: #64748b; border-radius: 10px; transition: 0.2s; }
+.tab-btn.active { color: #fff; background: #3b82f6; box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3); }
 
-/* Gerenciamento de Abas */
-.tab-content {
-    display: none;
-    height: 100%;
-}
+.kpi-card-new { background: #0f172a; padding: 24px; border-radius: 20px; border: 1px solid rgba(255,255,255,0.05); }
+.kpi-card-new span { font-size: 10px; font-weight: 800; text-transform: uppercase; color: #64748b; display: block; margin-bottom: 5px; }
+.kpi-card-new h2 { font-size: 28px; font-weight: 800; color: #fff; }
 
-.tab-content.active {
-    display: block;
-    animation: fadeIn 0.4s ease-out;
-}
+.chart-box { background: rgba(15, 23, 42, 0.5); padding: 24px; border-radius: 24px; border: 1px solid rgba(255,255,255,0.05); }
+.chart-box h3 { font-size: 11px; font-weight: 800; color: #fff; text-transform: uppercase; margin-bottom: 20px; opacity: 0.6; }
+.chart-wrapper { position: relative; height: 260px; width: 100%; }
 
-.tab-btn {
-    padding: 10px 24px;
-    font-size: 11px;
-    font-weight: 800;
-    color: #64748b;
-    border-radius: 12px;
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    letter-spacing: 0.5px;
-}
+.custom-scroll::-webkit-scrollbar { width: 4px; height: 4px; }
+.custom-scroll::-webkit-scrollbar-thumb { background: #1e293b; border-radius: 10px; }
 
-.tab-btn.active {
-    color: #fff;
-    background: #3b82f6;
-    box-shadow: 0 10px 20px rgba(59, 130, 246, 0.25);
-}
+th { font-size: 10px; font-weight: 800; text-transform: uppercase; color: #64748b; }
+td { font-size: 11px; white-space: nowrap; }
 
-/* Estilização de Cards KPI (Topo) */
-.kpi-card-new {
-    background: rgba(15, 23, 42, 0.8);
-    padding: 24px;
-    border-radius: 20px;
-    border: 1px solid rgba(255, 255, 255, 0.05);
-    backdrop-filter: blur(10px);
-    transition: transform 0.2s;
-}
-
-.kpi-card-new:hover {
-    transform: translateY(-2px);
-    border-color: rgba(255, 255, 255, 0.1);
-}
-
-.kpi-card-new p {
-    font-size: 10px;
-    font-weight: 800;
-    text-transform: uppercase;
-    color: #64748b;
-    margin-bottom: 8px;
-    letter-spacing: 1px;
-}
-
-.kpi-card-new h2 {
-    font-size: 32px;
-    font-weight: 800;
-    color: white;
-}
-
-/* Box dos Gráficos */
-.chart-box {
-    background: rgba(15, 23, 42, 0.6);
-    padding: 24px;
-    border-radius: 24px;
-    border: 1px solid rgba(255, 255, 255, 0.05);
-    display: flex;
-    flex-direction: column;
-}
-
-.chart-box h3 {
-    font-size: 11px;
-    font-weight: 800;
-    color: #fff;
-    text-transform: uppercase;
-    margin-bottom: 20px;
-    opacity: 0.8;
-    letter-spacing: 0.5px;
-}
-
-/* Wrapper Crítico para os Gráficos (Resolve o erro da imagem) */
-.chart-wrapper {
-    position: relative;
-    margin: auto;
-    height: 280px; /* Altura fixa para evitar o esticamento */
-    width: 100%;
-}
-
-/* Estilização da Tabela */
-.custom-scroll::-webkit-scrollbar {
-    width: 6px;
-    height: 6px;
-}
-
-.custom-scroll::-webkit-scrollbar-thumb {
-    background: #1e293b;
-    border-radius: 10px;
-}
-
-table {
-    width: 100%;
-    border-collapse: separate;
-    border-spacing: 0;
-}
-
-th {
-    font-size: 10px;
-    font-weight: 700;
-    text-transform: uppercase;
-    color: #94a3b8;
-    padding: 16px;
-    background: #1e293b;
-    position: sticky;
-    top: 0;
-    z-index: 10;
-}
-
-td {
-    font-size: 12px;
-    padding: 14px 16px;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.03);
-    white-space: nowrap;
-}
-
-/* Cores das Linhas da Tabela */
-.row-diff {
-    background: rgba(245, 158, 11, 0.08) !important;
-    color: #f59e0b !important;
-    font-weight: 600;
-}
-
-.row-equal {
-    background: rgba(16, 185, 129, 0.03) !important;
-    color: #10b981;
-}
-
-/* Estilo do Relatório IA (Insights) */
-#aiTxt {
-    line-height: 1.8;
-}
-
-#aiTxt strong {
-    color: #fff;
-    font-weight: 700;
-}
-
-.insight-highlight {
-    background: rgba(59, 130, 246, 0.1);
-    border-left: 4px solid #3b82f6;
-    padding: 15px;
-    border-radius: 8px;
-    margin: 15px 0;
-}
-
-/* Inputs e Selects */
-select {
-    cursor: pointer;
-    transition: background 0.2s;
-}
-
-select:hover {
-    background: #334155 !important;
-}
-
-/* Responsividade básica */
-@media (max-width: 768px) {
-    .chart-wrapper {
-        height: 220px;
-    }
-}
+@keyframes slideUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }

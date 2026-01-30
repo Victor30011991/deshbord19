@@ -1,7 +1,7 @@
-/* Importação da Fonte Inter para um aspeto moderno e limpo */
+/* Importação da fonte Inter para um aspeto moderno e limpo */
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
 
-/* Reset e Configurações Globais */
+/* Reset e Estrutura Base */
 * { 
     box-sizing: border-box; 
     margin: 0; 
@@ -10,115 +10,140 @@
 
 body { 
     font-family: 'Inter', sans-serif; 
-    letter-spacing: -0.01em; 
-    background-color: #0b0f1a; /* Fundo Ultra Dark */
+    background-color: #0b0f1a; /* Fundo ultra-dark */
     color: #94a3b8;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
 }
 
-/* Estilização dos Cards de KPI (Números do Topo) */
-h2 {
-    letter-spacing: -0.05em;
+/* Header e Navegação Superior */
+header {
+    background: #0f172a;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    flex-shrink: 0;
 }
 
+/* Grid de KPIs (Os 4 quadros superiores) */
 .grid > div {
-    background: rgba(15, 23, 42, 0.4);
-    backdrop-filter: blur(4px);
-    transition: transform 0.2s ease;
+    background: rgba(15, 23, 42, 0.3);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    border-radius: 4px;
+    padding: 12px;
+    transition: all 0.2s ease;
 }
 
 .grid > div:hover {
-    transform: translateY(-2px);
     border-color: rgba(59, 130, 246, 0.3);
+    background: rgba(15, 23, 42, 0.5);
+}
+
+h2 {
+    font-family: 'JetBrains Mono', monospace;
+    font-weight: 600;
+}
+
+/* Barra de Status da Tabela (Onde ficam os contadores que sumiram) */
+.toolbar-counters {
+    background: rgba(15, 23, 42, 0.4);
+}
+
+#equalCounter, #diffCounter {
+    font-weight: 700;
+    font-family: 'JetBrains Mono', monospace;
 }
 
 /* Tabela de Alta Densidade */
-.table-wrapper { 
-    background: #0b0f1a; 
-    position: relative; 
+.table-wrapper {
+    flex: 1;
+    overflow: auto;
+    background: #0b0f1a;
 }
 
-table { 
-    width: 100%; 
-    border-spacing: 0; 
-    border-collapse: collapse; 
-    table-layout: auto;
+table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 11px;
 }
 
 /* Cabeçalho Fixo (Sticky Header) */
-th { 
-    position: sticky; 
-    top: 0; 
-    background: #161c2d; 
-    color: #475569; 
-    font-size: 9px; 
-    font-weight: 700; 
-    text-transform: uppercase; 
-    padding: 12px 10px; 
-    text-align: left; 
-    z-index: 10; 
-    border-bottom: 1px solid rgba(255,255,255,0.05);
+th {
+    position: sticky;
+    top: 0;
+    background: #161c2d;
+    color: #475569;
+    font-size: 9px;
+    font-weight: 700;
+    text-transform: uppercase;
+    padding: 12px 10px;
+    text-align: left;
+    z-index: 20;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+/* Estilização das Células e Divergências */
+td {
+    padding: 8px 10px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.02);
     white-space: nowrap;
+    max-width: 250px;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
-/* Células da Tabela */
-td { 
-    padding: 8px 10px; 
-    border-bottom: 1px solid rgba(255,255,255,0.02); 
-    font-size: 11px; 
-    color: #94a3b8; 
-    white-space: nowrap;
-    max-width: 250px; 
-    overflow: hidden; 
-    text-overflow: ellipsis; /* Corta o texto longo com "..." */
+/* Linha com Divergência (Fundo Laranja Sutil) */
+.diff-row {
+    background: rgba(245, 158, 11, 0.04); 
 }
 
-/* Destaque para Linhas com Divergência */
-.diff-row { 
-    background: rgba(245, 158, 11, 0.03); 
+/* Cor Amarela Vibrante para as setas ⮕ */
+.text-yellow-500 {
+    color: #f59e0b !important;
+    font-weight: 600;
 }
 
-tr:hover td { 
-    background: rgba(59, 130, 246, 0.05); 
-    color: #fff; 
+/* Hover na Linha */
+tr:hover td {
+    background: rgba(59, 130, 246, 0.05);
+    color: #fff;
 }
 
-/* Estilização dos Selects e Inputs */
-select, input {
-    transition: all 0.2s ease;
-    border: 1px solid transparent;
+/* Sidebar e Área de Gráficos */
+aside {
+    background: rgba(15, 23, 42, 0.5);
+    border-right: 1px solid rgba(255, 255, 255, 0.05);
 }
 
-select:focus, input:focus {
-    border-color: rgba(59, 130, 246, 0.5);
-    background-color: #1e293b;
-}
-
-/* Gráficos */
-canvas { 
-    max-width: 100% !important; 
+canvas {
+    max-width: 100% !important;
     filter: drop-shadow(0 4px 6px rgba(0,0,0,0.1));
 }
 
-/* Barra de Rolagem (Scrollbar) Minimalista */
-::-webkit-scrollbar { 
-    width: 5px; 
-    height: 5px; 
+/* Barra de Rolagem Customizada (Scrollbar) */
+::-webkit-scrollbar {
+    width: 4px;
+    height: 4px;
 }
 
-::-webkit-scrollbar-track { 
-    background: transparent; 
+::-webkit-scrollbar-track {
+    background: transparent;
 }
 
-::-webkit-scrollbar-thumb { 
-    background: #1e293b; 
-    border-radius: 10px; 
+::-webkit-scrollbar-thumb {
+    background: #1e293b;
+    border-radius: 10px;
 }
 
-::-webkit-scrollbar-thumb:hover { 
-    background: #3b82f6; 
+::-webkit-scrollbar-thumb:hover {
+    background: #3b82f6;
 }
 
-/* Tooltip nativo (Aparece ao passar o rato em textos cortados) */
-td[title]:hover {
-    cursor: help;
+/* Efeito de destaque para os números de orientação */
+#diffCounter {
+    text-shadow: 0 0 8px rgba(245, 158, 11, 0.2);
+}
+
+#equalCounter {
+    text-shadow: 0 0 8px rgba(16, 185, 129, 0.2);
 }

@@ -2,88 +2,90 @@
 <html lang="pt-br">
 <head>
     <meta charset="UTF-8">
-    <title>BI.Enterprise AI - v2.0 Global</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BI Enterprise AI - Sistema de Auditoria de Larga Escala</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js"></script>
     <link rel="stylesheet" href="style.css">
 </head>
-<body class="bg-[#0b0f1a] text-slate-400 h-screen flex flex-col overflow-hidden">
+<body class="bg-[#0b0f1a] text-slate-300 h-screen flex flex-col overflow-hidden">
 
-    <header class="h-16 border-b border-white/5 flex items-center justify-between px-8 bg-[#0f172a] shrink-0">
-        <div class="flex items-center gap-6">
-            <div class="flex items-center gap-2 text-white">
-                <div class="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center font-bold shadow-lg shadow-blue-500/20">BI</div>
-                <span class="font-black text-sm tracking-tighter uppercase">Enterprise AI</span>
+    <header class="h-20 border-b border-white/5 bg-[#0f172a] flex items-center justify-between px-8 shrink-0">
+        <div class="flex items-center gap-4">
+            <div class="w-10 h-10 bg-blue-600 rounded-xl flex items-center justify-center text-white font-black shadow-lg shadow-blue-500/20">BI</div>
+            <div>
+                <h1 class="text-white font-bold text-sm tracking-tight uppercase">Enterprise AI</h1>
+                <p class="text-[10px] text-slate-500 font-bold uppercase tracking-widest">Auditoria de Dados v3.0</p>
             </div>
-            <input type="file" id="fileInput" class="hidden" multiple>
-            <label for="fileInput" class="bg-blue-600 hover:bg-blue-500 text-white text-[10px] font-bold px-6 py-2 rounded-full cursor-pointer transition-all active:scale-95">CARREGAR BASES</label>
         </div>
 
-        <nav class="flex bg-black/30 p-1 rounded-xl border border-white/5">
-            <button onclick="switchTab('tab-charts')" class="tab-btn active" id="btn-charts">DASHBOARD</button>
-            <button onclick="switchTab('tab-table')" class="tab-btn" id="btn-table">CONFERÊNCIA</button>
-            <button onclick="switchTab('tab-ai')" class="tab-btn" id="btn-ai-tab">RELATÓRIO</button>
+        <nav class="flex bg-black/40 p-1.5 rounded-2xl border border-white/5">
+            <button onclick="switchTab('tab-diag')" class="nav-link active" id="btn-diag">1. DIAGNÓSTICO</button>
+            <button onclick="switchTab('tab-acerto')" class="nav-link" id="btn-acerto">2. ÁREA DE ACERTOS</button>
+            <button onclick="switchTab('tab-dash')" class="nav-link" id="btn-dash">3. DASHBOARD</button>
+            <button onclick="switchTab('tab-rel')" class="nav-link" id="btn-rel">4. PARECER TÉCNICO</button>
         </nav>
-        
-        <div class="flex gap-4">
-            <button onclick="exportExcel()" class="text-emerald-500 text-[10px] font-bold">EXCEL</button>
-            <button onclick="exportPDF()" class="bg-red-500/10 text-red-500 border border-red-500/20 text-[10px] px-4 py-2 rounded-lg">PDF</button>
+
+        <div class="flex items-center gap-3">
+            <input type="file" id="fileInput" class="hidden" multiple accept=".csv, .xlsx">
+            <label for="fileInput" class="bg-blue-600 hover:bg-blue-500 text-white text-[10px] font-black px-6 py-3 rounded-xl cursor-pointer transition-all active:scale-95 shadow-lg shadow-blue-600/10">CARREGAR BASES</label>
         </div>
     </header>
 
-    <main class="flex-1 relative overflow-hidden bg-[#0b0f1a]">
-        <div id="tab-charts" class="tab-content active overflow-y-auto p-8">
-            <div class="max-w-7xl mx-auto space-y-8">
-                <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
-                    <div class="kpi-card-new"><span>Total Lido</span><h2 id="kpiRows">0</h2></div>
-                    <div class="kpi-card-new border-b-2 border-orange-500"><span>Divergências</span><h2 id="kpiDiffs" class="text-orange-500">0</h2></div>
-                    <div class="kpi-card-new border-b-2 border-emerald-500"><span>Conformidade</span><h2 id="kpiEquals" class="text-emerald-500">0</h2></div>
-                    <div class="kpi-card-new border-b-2 border-blue-500"><span>Taxa de Acerto</span><h2 id="kpiAccuracy" class="text-blue-400">0%</h2></div>
-                </div>
-
-                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                    <div class="chart-box lg:col-span-2">
-                        <h3>Volume por Município (Top 10)</h3>
-                        <div class="chart-wrapper"><canvas id="chartCities"></canvas></div>
+    <main class="flex-1 relative overflow-hidden">
+        
+        <section id="tab-diag" class="tab-content active p-8 overflow-y-auto">
+            <div class="max-w-6xl mx-auto space-y-6">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6" id="diag-files">
                     </div>
-                    <div class="chart-box">
-                        <h3>Status da Auditoria</h3>
-                        <div class="chart-wrapper"><canvas id="chartStatus"></canvas></div>
-                    </div>
-                    <div class="chart-box lg:col-span-3">
-                        <h3>Distribuição de Situações Base</h3>
-                        <div class="chart-wrapper"><canvas id="chartSituations"></canvas></div>
-                    </div>
+                <div id="diag-status" class="bg-[#0f172a] border border-white/5 rounded-3xl p-8 hidden">
+                    <h3 class="text-white font-bold mb-4">Relatório de Saúde dos Dados</h3>
+                    <div id="diag-details" class="space-y-3 text-sm"></div>
                 </div>
             </div>
-        </div>
+        </section>
 
-        <div id="tab-table" class="tab-content h-full p-6">
-            <div class="bg-[#0f172a] rounded-2xl border border-white/10 h-full flex flex-col overflow-hidden shadow-2xl">
-                <div class="p-4 border-b border-white/5 flex justify-between bg-black/20">
-                    <select id="viewFilter" onchange="renderTable()" class="bg-[#1e293b] text-white text-[10px] px-4 py-2 rounded-lg outline-none">
-                        <option value="all">TODOS OS DADOS</option>
-                        <option value="diff">APENAS ERROS (LARANJA)</option>
-                        <option value="equal">APENAS ACERTOS (VERDE)</option>
-                    </select>
+        <section id="tab-acerto" class="tab-content p-8 overflow-y-auto">
+            <div class="max-w-6xl mx-auto">
+                <div class="flex justify-between items-center mb-8">
+                    <h2 class="text-xl font-bold text-white">Centro de Tratamento de Inconsistências</h2>
+                    <span class="text-[10px] bg-orange-500/20 text-orange-400 px-3 py-1 rounded-full font-bold uppercase tracking-tighter" id="acerto-count">0 Pendências</span>
                 </div>
-                <div class="overflow-auto flex-1 custom-scroll">
-                    <table id="mainTable" class="w-full text-left border-collapse">
-                        <thead id="tableHeader" class="sticky top-0 z-20 bg-[#1e293b]"></thead>
-                        <tbody id="tableBody"></tbody>
-                    </table>
+                <div id="acerto-container" class="grid gap-4">
+                    </div>
+            </div>
+        </section>
+
+        <section id="tab-dash" class="tab-content p-8 overflow-y-auto">
+            <div class="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+                <div class="kpi-card"><span>Total Auditado</span><h2 id="kpi-total">0</h2></div>
+                <div class="kpi-card"><span>Conformidade</span><h2 id="kpi-conf" class="text-emerald-400">0%</h2></div>
+                <div class="kpi-card"><span>Divergências</span><h2 id="kpi-div" class="text-orange-500">0</h2></div>
+                <div class="kpi-card"><span>Ação Manual</span><h2 id="kpi-manual">0</h2></div>
+            </div>
+            <div class="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <div class="chart-box lg:col-span-2"><h3>Volume por Município (Top 10)</h3><div class="chart-h"><canvas id="chartCities"></canvas></div></div>
+                <div class="chart-box"><h3>Status de Auditoria</h3><div class="chart-h"><canvas id="chartStatus"></canvas></div></div>
+            </div>
+        </section>
+
+        <section id="tab-rel" class="tab-content p-12 overflow-y-auto">
+            <div class="max-w-4xl mx-auto bg-white/[0.02] border border-white/5 rounded-[40px] p-12 shadow-2xl relative overflow-hidden">
+                <div id="rel-content" class="relative z-10 space-y-8">
+                    <p class="text-center italic text-slate-500">Aguardando processamento dos dados...</p>
+                </div>
+                <div class="mt-12 flex justify-center gap-4">
+                    <button onclick="exportPDF()" class="bg-red-500/10 text-red-500 border border-red-500/20 px-8 py-3 rounded-2xl font-bold text-xs hover:bg-red-500 hover:text-white transition-all">BAIXAR PDF DE AUDITORIA</button>
+                    <button onclick="exportExcel()" class="bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 px-8 py-3 rounded-2xl font-bold text-xs hover:bg-emerald-500 hover:text-white transition-all">EXPORTAR EXCEL</button>
                 </div>
             </div>
-        </div>
-
-        <div id="tab-ai" class="tab-content h-full p-10">
-            <div class="max-w-3xl mx-auto bg-gradient-to-br from-[#1e293b] to-[#0f172a] rounded-3xl p-10 shadow-2xl border border-white/10" id="aiTxt">
-                Carregue os arquivos para gerar o parecer técnico.
-            </div>
-        </div>
+        </section>
     </main>
+
     <script src="script.js"></script>
 </body>
 </html>

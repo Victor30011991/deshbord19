@@ -1,128 +1,93 @@
-let rawA = [], rawB = [], auditResult = [];
-let currentTab = 'tab-conf';
-let currentFilter = 'todos';
-let charts = {};
+let uploadedFiles = [];
+let allResults = []; 
+let chartD, chartC;
 
-// FUNÇÃO DE NAVEGAÇÃO (CORRIGIDA)
-function showTab(id) {
-    document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
-    document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
-    
-    document.getElementById(id).classList.add('active');
-    document.getElementById('nav-' + id.split('-')[1]).classList.add('active');
-    
-    currentTab = id;
-    if (id === 'tab-dash') {
-        setTimeout(renderDashboard, 100); // Força renderização do gráfico
+// Troca de Abas (Simples e funcional)
+function changeTab(tab) {
+    document.getElementById('tab-dashboard').classList.toggle('hidden', tab !== 'dashboard');
+    document.getElementById('tab-auditoria').classList.toggle('hidden', tab !== 'auditoria');
+    if(tab === 'dashboard' && allResults.length > 0) initDashboard();
+}
+
+document.getElementById('fileInput').onchange = async (e) => {
+    const files = Array.from(e.target.files);
+    uploadedFiles = [];
+    for (let file of files) {
+        const data = await file.arrayBuffer();
+        const workbook = XLSX.read(data, { type: 'array' });
+        const json = XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]]);
+        uploadedFiles.push({ data: json, name: file.name });
     }
-}
+    if(uploadedFiles.length >= 2) processComparison();
+};
 
-// UPLOAD E PROCESSAMENTO
-document.getElementById('fileInput').addEventListener('change', async (e) => {
-    const files = e.target.files;
-    if (files.length < 2) return;
+function processComparison() {
+    const t1 = uploadedFiles[0].data;
+    const t2 = uploadedFiles[1].data;
 
-    rawA = await parseFile(files[0]);
-    rawB = await parseFile(files[1]);
+    // Indexação por Nome (Performance 13k)
+    const mapT2 = new Map();
+    t2.forEach(row => {
+        const key = String(row.ALUNO || row.NOME || "").toUpperCase().trim();
+        if(key) mapT2.set(key, row);
+    });
 
-    // Criar Relação (Veredito)
-    const mapB = new Map(rawB.map(i => [String(i.ALUNO || i.NOME || "").toUpperCase().trim(), i]));
-
-    auditResult = rawA.map(rowA => {
-        const nomeA = String(rowA.ALUNO || rowA.NOME_ALUNO || "").toUpperCase().trim();
-        const rowB = mapB.get(nomeA);
+    allResults = t1.map(rowA => {
+        const keyA = String(rowA.ALUNO || rowA.NOME_ALUNO || "").toUpperCase().trim();
+        const rowB = mapT2.get(keyA) || {};
         
-        let status = 'ausente';
-        if (rowB) {
-            status = (String(rowA.SITUACAO_MATRICULA || "").trim() === String(rowB.STATUS || "").trim()) 
-                     ? 'relacionado' : 'divergente';
-        }
-        return { dataA: rowA, dataB: rowB || {}, status };
+        const statusA = String(rowA.SITUACAO_MATRICULA || "").toUpperCase();
+        const statusB = String(rowB.STATUS || rowB.SITUACAO || "").toUpperCase();
+        
+        const isMatch = statusA === statusB && keyA !== "";
+        
+        return {
+            rowA,
+            rowB,
+            status: isMatch ? 'IGUAL' : (rowB.ALUNO ? 'DIVERGENTE' : 'AUSENTE'),
+            searchKey: (keyA + " " + (rowA.CPF || "")).toUpperCase()
+        };
     });
 
-    document.getElementById('btnDownload').classList.remove('hidden');
-    updateAllScreens();
-});
-
-async function parseFile(file) {
-    return new Promise(resolve => {
-        Papa.parse(file, { header: true, skipEmptyLines: true, encoding: "ISO-8859-1", complete: r => resolve(r.data) });
-    });
+    renderTripleTable();
+    initDashboard();
 }
 
-function updateAllScreens() {
-    renderTripleView();
-    renderDiagnostics();
-    if (currentTab === 'tab-dash') renderDashboard();
+function renderTripleTable() {
+    const search = document.getElementById('tableSearch').value.toUpperCase();
+    const filtered = allResults.filter(i => i.searchKey.includes(search));
+    const display = filtered.slice(0, 150); // Performance de Scroll
+
+    const buildRow = (content) => `<tr class="border-b border-white/5 text-[10px]"><td class="p-2">${content}</td></tr>`;
+
+    document.getElementById('tableA').innerHTML = display.map(i => buildRow(`<b class="text-white">${i.rowA.ALUNO || i.rowA.NOME_ALUNO}</b><br><span class="opacity-50">${i.rowA.SITUACAO_MATRICULA || '---'}</span>`)).join('');
+    document.getElementById('tableB').innerHTML = display.map(i => buildRow(`<b>${i.rowB.ALUNO || '---'}</b><br><span class="opacity-50">${i.rowB.STATUS || '---'}</span>`)).join('');
+    document.getElementById('tableRes').innerHTML = display.map(i => buildRow(`<span class="px-2 py-0.5 rounded ${i.status === 'IGUAL' ? 'bg-emerald-500/10 text-emerald-500' : 'bg-yellow-500/10 text-yellow-500'} font-bold text-[8px]">${i.status}</span>`)).join('');
 }
 
-// RENDERIZAÇÃO DA CONFERÊNCIA (TRIPLE VIEW)
-function renderTripleView() {
-    const searchTerm = document.getElementById('globalSearch').value.toUpperCase();
-    const filtered = auditResult.filter(i => {
-        const matchesFilter = currentFilter === 'todos' || i.status === currentFilter;
-        const matchesSearch = !searchTerm || JSON.stringify(i).toUpperCase().includes(searchTerm);
-        return matchesFilter && matchesSearch;
-    });
+document.getElementById('tableSearch').oninput = renderTripleTable;
 
-    const display = filtered.slice(0, 100); // Mostra 100 por vez para leveza
-    
-    const h = (txt) => `<thead><tr><th>${txt}</th><th>Status</th></tr></thead>`;
-    
-    document.getElementById('tableA').innerHTML = h('Base A') + `<tbody>${display.map(i => `<tr><td>${i.dataA.ALUNO || i.dataA.NOME_ALUNO}</td><td>${i.dataA.SITUACAO_MATRICULA || '-'}</td></tr>`).join('')}</tbody>`;
-    document.getElementById('tableB').innerHTML = h('Base B') + `<tbody>${display.map(i => `<tr><td>${i.dataB.ALUNO || i.dataB.NOME || '---'}</td><td>${i.dataB.STATUS || i.dataB.SITUACAO || '---'}</td></tr>`).join('')}</tbody>`;
-    document.getElementById('tableRes').innerHTML = `<thead><tr><th>Veredito AI</th></tr></thead><tbody>${display.map(i => `<tr><td><span class="badge ${i.status === 'relacionado' ? 'bg-emerald-500/20 text-emerald-400' : i.status === 'divergente' ? 'bg-orange-500/20 text-orange-400' : 'bg-slate-700'}">${i.status}</span></td></tr>`).join('')}</tbody>`;
+function initDashboard() {
+    const total = allResults.length;
+    const diffs = allResults.filter(i => i.status !== 'IGUAL').length;
+    const acc = total > 0 ? ((total - diffs) / total * 100).toFixed(1) : 0;
+
+    document.getElementById('totalRecords').innerText = total;
+    document.getElementById('diffCounter').innerText = diffs;
+    document.getElementById('accuracyRate').innerText = acc + "%";
+
+    updateCharts(diffs, total);
 }
 
-// DASHBOARD (CORRIGIDO PARA NÃO SUMIR)
-function renderDashboard() {
-    if (auditResult.length === 0) return;
-
-    const stats = {
-        rel: auditResult.filter(i => i.status === 'relacionado').length,
-        div: auditResult.filter(i => i.status === 'divergente').length,
-        aus: auditResult.filter(i => i.status === 'ausente').length
-    };
-
-    document.getElementById('kpi-row').innerHTML = `
-        <div class="bg-[#0f172a] p-5 rounded-2xl border border-white/5"><span>Total</span><h2 class="text-2xl font-black">${auditResult.length}</h2></div>
-        <div class="bg-[#0f172a] p-5 rounded-2xl border border-white/5"><span class="text-emerald-400">Match</span><h2 class="text-2xl font-black">${stats.rel}</h2></div>
-        <div class="bg-[#0f172a] p-5 rounded-2xl border border-white/5"><span class="text-orange-400">Divergente</span><h2 class="text-2xl font-black">${stats.div}</h2></div>
-        <div class="bg-[#0f172a] p-5 rounded-2xl border border-white/5"><span class="opacity-30">Ausente</span><h2 class="text-2xl font-black">${stats.aus}</h2></div>
-    `;
-
-    const ctx = document.getElementById('chartStatus').getContext('2d');
-    if (charts.status) charts.status.destroy();
-    charts.status = new Chart(ctx, {
+function updateCharts(d, t) {
+    const ctx = document.getElementById('chartDiff').getContext('2d');
+    if(chartD) chartD.destroy();
+    chartD = new Chart(ctx, {
         type: 'doughnut',
         data: {
-            labels: ['Relacionados', 'Divergentes', 'Ausentes'],
-            datasets: [{ data: [stats.rel, stats.div, stats.aus], backgroundColor: ['#10b981', '#f59e0b', '#334155'], borderWidth: 0 }]
+            labels: ['Divergentes', 'Iguais'],
+            datasets: [{ data: [d, t-d], backgroundColor: ['#f59e0b', '#10b981'], borderWidth: 0 }]
         },
-        options: { maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels: { color: '#64748b' } } } }
+        options: { cutout: '80%', plugins: { legend: { display: false } } }
     });
-}
-
-// FILTROS E BUSCA
-function filterByStatus(s) {
-    currentFilter = s;
-    document.querySelectorAll('.f-btn').forEach(b => b.classList.remove('active'));
-    document.getElementById('f-' + s).classList.add('active');
-    renderTripleView();
-}
-document.getElementById('globalSearch').addEventListener('input', renderTripleView);
-
-function renderDiagnostics() {
-    document.getElementById('diag-container').innerHTML = `
-        <div class="bg-emerald-500/10 border border-emerald-500/20 p-8 rounded-3xl text-center">
-            <h3 class="text-emerald-400 font-bold text-lg mb-2">Processamento Concluído</h3>
-            <p class="text-sm opacity-60">As duas planilhas foram relacionadas com sucesso.</p>
-        </div>`;
-}
-
-function exportResult() {
-    const ws = XLSX.utils.json_to_sheet(auditResult.map(i => ({ Aluno: i.dataA.ALUNO, BaseA: i.dataA.SITUACAO_MATRICULA, BaseB: i.dataB.STATUS, Resultado: i.status })));
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "Auditoria");
-    XLSX.writeFile(wb, "Relatorio_Auditoria.xlsx");
 }

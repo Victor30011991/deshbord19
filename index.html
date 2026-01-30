@@ -2,90 +2,85 @@
 <html lang="pt-pt">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>BI.Enterprise AI - Sistema de Auditoria</title>
-    
+    <title>BI.Enterprise AI - Auditoria Master</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
-    
     <link rel="stylesheet" href="style.css">
 </head>
-<body class="bg-[#0b0f1a] text-slate-400 overflow-hidden h-screen flex flex-col">
+<body class="bg-[#0b0f1a] text-slate-400 h-screen flex flex-col overflow-hidden">
 
     <header class="h-16 border-b border-white/5 flex items-center justify-between px-6 bg-[#0f172a] shrink-0">
         <div class="flex items-center gap-6">
-            <h1 class="text-white font-bold text-sm uppercase tracking-tighter">BI.Enterprise AI</h1>
-            <nav class="flex bg-black/40 p-1 rounded-lg border border-white/10">
-                <button onclick="switchTab('tab-charts')" class="tab-btn active" id="btn-charts">📊 DASHBOARD</button>
-                <button onclick="switchTab('tab-table')" class="tab-btn" id="btn-table">📋 TABELA</button>
-                <button onclick="switchTab('tab-ai')" class="tab-btn" id="btn-ai-tab">🤖 PARECER IA</button>
-            </nav>
-        </div>
-        
-        <div class="flex items-center gap-3">
+            <div class="flex items-center gap-2">
+                <div class="w-8 h-8 bg-blue-600 rounded flex items-center justify-center text-white font-bold">BI</div>
+                <h1 class="text-white font-bold text-sm uppercase tracking-tighter">Enterprise AI</h1>
+            </div>
             <input type="file" id="fileInput" class="hidden" multiple accept=".xlsx,.csv,.pdf">
-            <label for="fileInput" class="bg-blue-600 hover:bg-blue-500 text-white text-[10px] font-bold px-4 py-2 rounded cursor-pointer uppercase transition-all">Importar</label>
-            <input type="password" id="geminiKey" placeholder="Gemini API Key" class="bg-black/40 border border-white/10 rounded px-3 py-1.5 text-[10px] w-40 text-white outline-none focus:border-purple-500">
-            <button id="btnAi" class="bg-purple-600 hover:bg-purple-500 text-white text-[10px] font-bold px-4 py-2 rounded uppercase transition-all">Analisar com IA</button>
+            <label for="fileInput" class="bg-blue-600 hover:bg-blue-500 text-white text-[10px] font-bold px-4 py-2 rounded cursor-pointer uppercase transition-all">Importar Arquivos</label>
+        </div>
+
+        <nav class="flex bg-black/40 p-1 rounded-lg border border-white/10">
+            <button onclick="switchTab('tab-charts')" class="tab-btn active" id="btn-charts">DASHBOARD</button>
+            <button onclick="switchTab('tab-table')" class="tab-btn" id="btn-table">TABELA</button>
+            <button onclick="switchTab('tab-ai')" class="tab-btn" id="btn-ai-tab">RELATÓRIO IA</button>
+        </nav>
+        
+        <div class="flex items-center gap-2">
+            <button onclick="exportExcel()" class="bg-emerald-600/20 text-emerald-500 border border-emerald-600/30 text-[9px] font-bold px-3 py-2 rounded uppercase hover:bg-emerald-600 hover:text-white transition-all">Excel</button>
+            <button onclick="exportPDF()" class="bg-red-600/20 text-red-500 border border-red-600/30 text-[9px] font-bold px-3 py-2 rounded uppercase hover:bg-red-600 hover:text-white transition-all">PDF</button>
+            <div class="h-6 w-[1px] bg-white/10 mx-1"></div>
+            <input type="password" id="geminiKey" placeholder="API Key" class="bg-black/40 border border-white/10 rounded px-3 py-1.5 text-[10px] w-32 text-white outline-none">
+            <button id="btnAi" class="bg-purple-600 text-white text-[10px] font-bold px-4 py-2 rounded uppercase">Análise IA</button>
         </div>
     </header>
 
-    <main class="flex-1 relative overflow-hidden">
-        
-        <div id="tab-charts" class="tab-content active p-6 overflow-y-auto h-full">
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+    <main class="flex-1 relative">
+        <div id="tab-charts" class="tab-content active p-8">
+            <div class="max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-8">
                 <div class="kpi-card h-80 flex flex-col items-center justify-center">
-                    <p class="kpi-label">Status de Auditoria</p>
+                    <p class="kpi-label">Acuracidade Geral</p>
                     <canvas id="chartStatus"></canvas>
                 </div>
-                <div class="kpi-card h-80">
-                    <p class="kpi-label">Evolução de Registros</p>
-                    <canvas id="chartHistory"></canvas>
-                </div>
-                <div class="grid grid-rows-3 gap-4">
-                    <div class="kpi-card"><p class="kpi-label">Total Processado</p><h2 id="kpiRows" class="kpi-value text-white">0</h2></div>
-                    <div class="kpi-card"><p class="kpi-label text-orange-500">Divergências</p><h2 id="kpiDiffs" class="kpi-value text-orange-500">0</h2></div>
-                    <div class="kpi-card"><p class="kpi-label">Acuracidade</p><h2 id="kpiAcc" class="kpi-value text-emerald-500">0%</h2></div>
+                <div class="col-span-2 grid grid-cols-2 gap-4">
+                    <div class="kpi-card"><p class="kpi-label">Registros Totais</p><h2 id="kpiRows" class="kpi-value text-white">0</h2></div>
+                    <div class="kpi-card"><p class="kpi-label">Divergências Encontradas</p><h2 id="kpiDiffs" class="kpi-value text-orange-500">0</h2></div>
+                    <div class="kpi-card col-span-2"><p class="kpi-label">Status da Auditoria</p><h2 id="kpiStatusText" class="text-sm font-bold text-blue-400">Aguardando dados...</h2></div>
                 </div>
             </div>
         </div>
 
         <div id="tab-table" class="tab-content h-full">
-            <div class="flex flex-col h-full">
-                <div class="p-4 bg-[#0f172a] border-b border-white/5 flex justify-between items-center">
-                    <select id="viewFilter" onchange="applyFilters()" class="bg-black/40 border border-white/10 rounded px-3 py-1.5 text-[10px] text-white outline-none">
-                        <option value="all">TODOS OS DADOS</option>
-                        <option value="diff">APENAS DIVERGÊNCIAS (LARANJA)</option>
+            <div class="flex flex-col h-full max-w-[95%] mx-auto py-4">
+                <div class="flex justify-between items-center mb-4 bg-[#0f172a] p-3 rounded-t-lg border border-white/5">
+                    <select id="viewFilter" onchange="applyFilters()" class="bg-black/60 border border-white/20 rounded px-4 py-2 text-[10px] text-white">
+                        <option value="all">TODOS OS DADOS (COMPLETO)</option>
+                        <option value="diff">APENAS DIVERGÊNCIAS (CONFLITOS)</option>
+                        <option value="equal">APENAS CORRELATOS (IGUAIS)</option>
                     </select>
-                    <button onclick="exportExcel()" class="text-[10px] font-bold text-emerald-500 hover:text-emerald-400 uppercase">Exportar para Excel</button>
+                    <span class="text-[10px] text-slate-500 uppercase font-bold">Auditoria em Tempo Real</span>
                 </div>
-                <div class="table-container flex-1 overflow-auto">
-                    <table id="mainTable">
-                        <thead id="tableHeader"></thead>
-                        <tbody id="tableBody"></tbody>
-                    </table>
+                <div class="table-container border border-white/5 rounded-b-lg">
+                    <table id="mainTable"><thead id="tableHeader"></thead><tbody id="tableBody"></tbody></table>
                 </div>
             </div>
         </div>
 
-        <div id="tab-ai" class="tab-content h-full bg-[#0b0f1a] p-10 flex justify-center">
-            <div class="max-w-4xl w-full bg-[#161c2d] border border-purple-500/20 rounded-xl p-8 shadow-2xl overflow-y-auto">
-                <div class="flex items-center justify-between mb-8 border-b border-white/5 pb-4">
-                    <h2 class="text-purple-400 font-bold uppercase tracking-widest text-sm">Relatório Técnico IA</h2>
-                    <span id="aiStatus" class="hidden text-[10px] animate-pulse text-purple-300">PROCESSANDO...</span>
+        <div id="tab-ai" class="tab-content h-full p-10">
+            <div class="max-w-4xl mx-auto bg-[#161c2d] border border-purple-500/20 rounded-xl p-8 shadow-2xl h-full flex flex-col">
+                <div class="flex items-center justify-between mb-6 border-b border-white/5 pb-4">
+                    <h2 class="text-purple-400 font-bold uppercase tracking-widest text-sm">Parecer Técnico e Soluções</h2>
+                    <div id="aiLoader" class="hidden flex items-center gap-2"><div class="w-2 h-2 bg-purple-500 animate-ping rounded-full"></div><span class="text-[9px]">IA PENSANDO...</span></div>
                 </div>
-                <div id="aiTxt" class="text-slate-300 leading-relaxed space-y-4 font-light text-sm italic">
-                    Importe os arquivos e clique em "Analisar com IA" para gerar o parecer técnico e conclusivo.
+                <div id="aiTxt" class="flex-1 overflow-y-auto pr-4 text-slate-300 leading-relaxed space-y-4 text-sm font-light italic">
+                    O relatório detalhado aparecerá aqui. Se houver erro de colunas, a IA indicará o ajuste necessário.
                 </div>
             </div>
         </div>
-
     </main>
-
     <script src="script.js"></script>
 </body>
 </html>

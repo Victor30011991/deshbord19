@@ -1,176 +1,160 @@
-/* ============================================================
-   BI.ENTERPRISE AI - MOTOR DE AUDITORIA (JS COMPLETO)
-   ============================================================ */
+let storage = [];
+let auditedData = [];
+let chartStatus = null;
 
-// Configuração do PDF Worker
-pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.worker.min.js';
+// Navegação entre abas
+function switchTab(tabId) {
+    document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.getElementById(tabId).classList.add('active');
+    event.currentTarget.classList.add('active');
+}
 
-let storage = []; // Armazena os dados brutos dos arquivos
-let currentVisibleData = []; // Dados após cruzamento/auditoria
-let chartRef = null;
-
-// 1. ESCUTA DE ARQUIVOS
+// Leitura de Arquivos (CSV, XLSX)
 document.getElementById('fileInput').addEventListener('change', async (e) => {
     const files = Array.from(e.target.files);
-    
+    storage = [];
     for (let f of files) {
-        const data = await readFile(f);
-        if (data) storage.push({ name: f.name, content: data });
+        const data = await parseFile(f);
+        storage.push({ name: f.name, rows: data });
     }
-
-    if (storage.length > 0) processAuditory();
+    if (storage.length > 0) processData();
 });
 
-// 2. MOTOR DE LEITURA (Excel, CSV e PDF)
-async function readFile(file) {
+async function parseFile(file) {
     return new Promise((resolve) => {
-        const reader = new FileReader();
-
-        if (file.name.endsWith('.xlsx') || file.name.endsWith('.xls')) {
-            reader.onload = (e) => {
-                const workbook = XLSX.read(e.target.result, { type: 'binary' });
-                const sheet = workbook.Sheets[workbook.SheetNames[0]];
-                resolve(XLSX.utils.sheet_to_json(sheet));
-            };
-            reader.readAsBinaryString(file);
-        } 
-        else if (file.name.endsWith('.csv')) {
-            // PapaParse detecta automaticamente se é vírgula ou ponto e vírgula
+        if (file.name.endsWith('.csv')) {
             Papa.parse(file, {
                 header: true,
                 skipEmptyLines: true,
-                complete: (res) => resolve(res.data)
+                dynamicTyping: true,
+                complete: (results) => resolve(results.data)
             });
-        }
-        else if (file.name.endsWith('.pdf')) {
-            readPDF(file).then(resolve);
+        } else {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                const wb = XLSX.read(e.target.result, { type: 'binary' });
+                resolve(XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]]));
+            };
+            reader.readAsBinaryString(file);
         }
     });
 }
 
-// 3. EXTRAÇÃO DE PDF DIGITAL
-async function readPDF(file) {
-    const arrayBuffer = await file.arrayBuffer();
-    const pdf = await pdfjsLib.getDocument(arrayBuffer).promise;
-    let text = "";
-    for (let i = 1; i <= pdf.numPages; i++) {
-        const page = await pdf.getPage(i);
-        const content = await page.getTextContent();
-        text += content.items.map(s => s.str).join(" ") + " ";
-    }
-    return [{ "Origem": "PDF", "Conteúdo": text.substring(0, 500) }];
-}
-
-// 4. LÓGICA DE AUDITORIA E CRUZAMENTO
-function processAuditory() {
-    const base = storage[0].content;
-    const comp = storage[1] ? storage[1].content : null;
+// Lógica de Comparação Q.A.
+function processData() {
+    const base = storage[0].rows;
+    const comp = storage[1] ? storage[1].rows : null;
     const keys = Object.keys(base[0] || {});
-    let diffCount = 0;
+    let diffs = 0;
 
-    const audited = base.map((row, i) => {
+    auditedData = base.map(row => {
         let isDiff = false;
-        let auditedRow = { ...row };
+        let diffDetail = "";
 
         if (comp) {
-            // Tenta encontrar o aluno no segundo arquivo (por nome ou matrícula)
-            const match = comp.find(r => 
-                (r.NOME_ALUNO && r.NOME_ALUNO === row.ALUNO) || 
-                (r.CD_MATRICULA && String(r.CD_MATRICULA) === String(row.CD_MATRICULA))
-            );
+            // Busca cruzada: ALUNO (Janeiro) vs NOME_ALUNO (Dezembro)
+            const id1 = (row.ALUNO || row.NOME_ALUNO || "").toString().trim();
+            const match = comp.find(r => (r.ALUNO || r.NOME_ALUNO || "").toString().trim() === id1);
 
             if (!match) {
                 isDiff = true;
+                diffDetail = "Não encontrado no arquivo de comparação";
             } else {
-                // Compara se o Status mudou
-                if (String(row.STATUS || row.SITUACAO_MATRICULA) !== String(match.STATUS || match.SITUACAO_MATRICULA)) {
+                const s1 = (row.STATUS || row.SITUACAO_MATRICULA || "").toString();
+                const s2 = (match.STATUS || match.SITUACAO_MATRICULA || "").toString();
+                if (s1 !== s2) {
                     isDiff = true;
-                    auditedRow._statusComp = `${row.STATUS || 'Ø'} ⮕ ${match.STATUS || 'Ø'}`;
+                    diffDetail = `Status alterado: ${s1} ⮕ ${s2}`;
                 }
             }
         }
-
-        if (isDiff) diffCount++;
-        return { ...auditedRow, _isDiff: isDiff };
+        if (isDiff) diffs++;
+        return { ...row, _isDiff: isDiff, _detail: diffDetail };
     });
 
-    currentVisibleData = audited;
-    renderTable(audited, keys, diffCount);
+    renderTable(keys);
+    updateDashboard(auditedData.length, diffs);
 }
 
-// 5. RENDERIZAÇÃO E FILTROS DE COLUNA
-function renderTable(data, keys, dCount) {
+// Renderização e Filtros de Seta
+function renderTable(keys) {
     const tHead = document.getElementById('tableHeader');
-    
-    // Cria os cabeçalhos com os Selects de Filtro
     tHead.innerHTML = `<tr>${keys.map(k => `
         <th>
-            <div class="text-[9px] text-slate-500 mb-1 uppercase">${k}</div>
+            ${k}
             <select class="filter-select" onchange="applyFilters()">
                 <option value="">TUDO</option>
-                ${Array.from(new Set(storage[0].content.map(r => r[k]))).filter(v => v).slice(0, 50).map(v => `<option value="${v}">${v}</option>`).join('')}
+                ${Array.from(new Set(auditedData.map(r => r[k]))).slice(0, 15).map(v => `<option value="${v}">${v}</option>`).join('')}
             </select>
         </th>
     `).join('')}</tr>`;
-
-    applyFilters(); 
-    updateDashboard(data.length, dCount);
+    applyFilters();
 }
 
-// 6. APLICAÇÃO DE FILTROS (Visualização e Colunas)
 function applyFilters() {
-    const viewMode = document.getElementById('viewFilter').value; // 'all', 'diff', 'equal'
+    const mode = document.getElementById('viewFilter').value;
     const selects = document.querySelectorAll('.filter-select');
-    const keys = Object.keys(storage[0].content[0]);
-    const tBody = document.getElementById('tableBody');
-
-    const filtered = currentVisibleData.filter(row => {
-        const matchesView = viewMode === 'all' || (viewMode === 'diff' ? row._isDiff : !row._isDiff);
-        const matchesCols = Array.from(selects).every((sel, idx) => {
-            return sel.value === "" || String(row[keys[idx]]) === sel.value;
-        });
-        return matchesView && matchesCols;
+    const keys = Object.keys(auditedData[0]).filter(k => !k.startsWith('_'));
+    
+    const filtered = auditedData.filter(row => {
+        const matchesMode = mode === 'all' || (mode === 'diff' ? row._isDiff : !row._isDiff);
+        const matchesCols = Array.from(selects).every((sel, i) => sel.value === "" || String(row[keys[i]]) === sel.value);
+        return matchesMode && matchesCols;
     });
 
-    tBody.innerHTML = filtered.slice(0, 1000).map(r => `
+    document.getElementById('tableBody').innerHTML = filtered.slice(0, 500).map(r => `
         <tr class="${r._isDiff ? 'diff-row' : ''}">
-            ${keys.map(k => `<td>${r[k] ?? '---'}</td>`).join('')}
+            ${keys.map(k => `<td>${r[k] || '---'}</td>`).join('')}
         </tr>
     `).join('');
 }
 
-// 7. EXPORTAÇÃO (BAIXA O QUE ESTÁ FILTRADO)
-function exportExcel() {
-    const ws = XLSX.utils.json_to_sheet(currentVisibleData);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "Auditoria");
-    XLSX.writeFile(wb, "Relatorio_BI.xlsx");
-}
-
-function exportPDF() {
-    const { jsPDF } = window.jspdf;
-    const doc = new jsPDF('l', 'mm', 'a4');
-    doc.autoTable({ html: '#mainTable', theme: 'grid', styles: { fontSize: 6 } });
-    doc.save("Relatorio_Auditoria.pdf");
-}
-
-// 8. GRÁFICOS
+// Gráficos e KPIs
 function updateDashboard(total, diffs) {
     document.getElementById('kpiRows').innerText = total.toLocaleString();
     document.getElementById('kpiDiffs').innerText = diffs.toLocaleString();
     document.getElementById('kpiAcc').innerText = total > 0 ? ((total - diffs) / total * 100).toFixed(1) + "%" : "0%";
 
-    if(chartRef) chartRef.destroy();
-    const ctx = document.getElementById('statusChart').getContext('2d');
-    chartRef = new Chart(ctx, {
+    if (chartStatus) chartStatus.destroy();
+    chartStatus = new Chart(document.getElementById('chartStatus'), {
         type: 'doughnut',
-        data: {
-            datasets: [{
-                data: [diffs, total - diffs],
-                backgroundColor: ['#f59e0b', '#10b981'],
-                borderWidth: 0
-            }]
-        },
-        options: { cutout: '85%', plugins: { legend: { display: false } } }
+        data: { datasets: [{ data: [diffs, total - diffs], backgroundColor: ['#f59e0b', '#10b981'], borderWidth: 0 }] },
+        options: { cutout: '85%' }
     });
+}
+
+// Integração com IA Gemini
+document.getElementById('btnAi').onclick = async () => {
+    const key = document.getElementById('geminiKey').value;
+    if (!key) return alert("Insira a chave da API!");
+
+    const aiTxt = document.getElementById('aiTxt');
+    const status = document.getElementById('aiStatus');
+    
+    status.classList.remove('hidden');
+    aiTxt.innerHTML = "Processando parecer técnico...";
+    switchTab('tab-ai');
+
+    const prompt = `Analise os dados de auditoria: Total ${auditedData.length}, Divergências ${auditedData.filter(r => r._isDiff).length}. Gere um relatório com resumo, análise das divergências encontradas nos arquivos de produção e uma conclusão com solução técnica.`;
+
+    try {
+        const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${key}`, {
+            method: 'POST',
+            body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
+        });
+        const data = await res.json();
+        aiTxt.innerHTML = data.candidates[0].content.parts[0].text.replace(/\n/g, '<br>').replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+    } catch (e) {
+        aiTxt.innerHTML = "Erro ao conectar com a IA.";
+    } finally {
+        status.classList.add('hidden');
+    }
+};
+
+function exportExcel() {
+    const ws = XLSX.utils.json_to_sheet(auditedData);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Auditoria");
+    XLSX.writeFile(wb, "BI_Enterprise_Auditoria.xlsx");
 }

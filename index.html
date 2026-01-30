@@ -1,32 +1,72 @@
-<header class="h-16 border-b border-white/5 flex items-center justify-between px-6 bg-[#0f172a] shrink-0">
-    <div class="flex items-center gap-4">
-        <h1 class="text-white font-bold text-sm uppercase">BI.Enterprise</h1>
-        <input type="file" id="fileInput" class="hidden" multiple accept=".xlsx,.pdf">
-        <label for="fileInput" class="bg-blue-600 text-white text-[10px] font-bold px-4 py-2 rounded cursor-pointer uppercase">Carregar Dados</label>
-    </div>
-    <div class="flex items-center gap-4">
-        <input type="text" id="searchTable" placeholder="Filtrar registros..." class="bg-black/20 border border-white/10 rounded px-3 py-1.5 text-[10px] w-64 text-white">
-        <input type="password" id="geminiKey" placeholder="Gemini API Key" class="bg-black/40 border border-white/10 rounded px-3 py-1.5 text-[10px] w-40 text-white">
-        <button id="btnAi" class="bg-purple-600 text-white text-[10px] font-bold px-4 py-2 rounded uppercase">Análise IA</button>
-    </div>
-</header>
+<!DOCTYPE html>
+<html lang="pt-pt">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BI.Enterprise AI - Auditoria</title>
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.min.js"></script>
+    
+    <link rel="stylesheet" href="style.css">
+</head>
+<body class="bg-[#0b0f1a] text-slate-400 overflow-hidden h-screen flex flex-col">
 
-<main class="flex-1 flex overflow-hidden">
-    <aside>
-        <div class="h-44 mb-6"><canvas id="chartStatus"></canvas></div>
-        <div class="kpi-card border-purple-500/30 italic text-[10px]" id="aiBox">
-            Aguardando análise...
+    <header class="h-16 border-b border-white/5 flex items-center justify-between px-6 bg-[#0f172a] shrink-0">
+        <div class="flex items-center gap-6">
+            <h1 class="text-white font-bold text-sm tracking-tighter uppercase">BI.Enterprise AI</h1>
+            <input type="file" id="fileInput" class="hidden" multiple accept=".xlsx,.pdf">
+            <label for="fileInput" class="bg-blue-600 hover:bg-blue-500 text-white text-[10px] font-bold px-4 py-2 rounded cursor-pointer uppercase transition-all">Importar Arquivos</label>
         </div>
-    </aside>
+        
+        <div class="flex items-center gap-3">
+            <input type="text" id="globalSearch" placeholder="FILTRAR REGISTROS..." class="bg-black/20 border border-white/10 rounded px-3 py-1.5 text-[10px] w-64 text-white outline-none focus:border-blue-500">
+            <input type="password" id="geminiKey" placeholder="Gemini API Key" class="bg-black/40 border border-white/10 rounded px-3 py-1.5 text-[10px] w-40 text-white outline-none">
+            <button id="btnAi" class="bg-purple-600 hover:bg-purple-500 text-white text-[10px] font-bold px-4 py-2 rounded uppercase transition-all">Análise IA</button>
+            <button onclick="location.reload()" class="text-[10px] hover:text-red-400 uppercase font-bold ml-2">Reset</button>
+        </div>
+    </header>
 
-    <section class="flex-1 flex flex-col">
-        <div class="grid grid-cols-3 gap-4 p-4 bg-black/10">
-            <div class="kpi-card"><p class="text-[8px] uppercase">Linhas</p><h2 id="kpiRows">0</h2></div>
-            <div class="kpi-card"><p class="text-[8px] uppercase text-orange">Divergências</p><h2 id="kpiDiffs" class="text-orange">0</h2></div>
-            <div class="kpi-card"><p class="text-[8px] uppercase">Acuracidade</p><h2 id="kpiAcc">0%</h2></div>
-        </div>
-        <div class="table-container">
-            <table><thead id="tHead"></thead><tbody id="tBody"></tbody></table>
-        </div>
-    </section>
-</main>
+    <main class="flex-1 flex overflow-hidden">
+        <aside class="w-72 border-r border-white/5 bg-[#0f172a]/50 p-5 flex flex-col gap-6 overflow-y-auto shrink-0">
+            <div>
+                <p class="text-[9px] font-bold text-slate-500 uppercase mb-4 tracking-widest">Saúde dos Dados</p>
+                <div class="h-44 relative"><canvas id="statusChart"></canvas></div>
+            </div>
+            
+            <div id="aiResponse" class="hidden kpi-card border-purple-500/30">
+                <p class="text-[9px] font-bold text-purple-400 uppercase mb-2">Relatório de Inteligência</p>
+                <div id="aiTxt" class="text-[10px] leading-relaxed text-slate-200 italic">Processando padrões...</div>
+            </div>
+        </aside>
+
+        <section class="flex-1 flex flex-col min-w-0">
+            <div class="grid grid-cols-3 gap-4 p-4 bg-[#0f172a]/20 shrink-0">
+                <div class="kpi-card">
+                    <p class="kpi-label">Total de Linhas</p>
+                    <h2 id="kpiRows" class="kpi-value text-white">0</h2>
+                </div>
+                <div class="kpi-card">
+                    <p class="kpi-label">Divergências</p>
+                    <h2 id="kpiDiffs" class="kpi-value text-orange-500">0</h2>
+                </div>
+                <div class="kpi-card">
+                    <p class="kpi-label">Acuracidade</p>
+                    <h2 id="kpiAcc" class="kpi-value text-emerald-500">0%</h2>
+                </div>
+            </div>
+
+            <div class="table-container">
+                <table id="mainTable">
+                    <thead id="tableHeader"></thead>
+                    <tbody id="tableBody"></tbody>
+                </table>
+            </div>
+        </section>
+    </main>
+
+    <script src="script.js"></script>
+</body>
+</html>

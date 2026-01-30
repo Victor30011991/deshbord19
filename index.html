@@ -1,90 +1,77 @@
 <!DOCTYPE html>
-<html lang="pt-br">
+<html lang="pt-pt">
 <head>
     <meta charset="UTF-8">
-    <title>Enterprise Auditor AI - Estável</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BI.Enterprise - Auditoria de Dados</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
     <link rel="stylesheet" href="style.css">
 </head>
-<body class="bg-[#0b0f1a] text-slate-300 h-screen flex flex-col overflow-hidden font-sans">
+<body class="bg-[#0b0f1a] text-slate-400 overflow-hidden h-screen flex flex-col">
 
-    <header class="h-16 border-b border-white/5 bg-[#0f172a] flex items-center justify-between px-6 shrink-0 z-50">
-        <div class="flex items-center gap-3">
-            <div class="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center text-white font-black shadow-lg shadow-blue-500/20">AI</div>
-            <h1 class="text-white font-bold text-xs uppercase tracking-widest">Enterprise Auditor</h1>
+    <header class="h-14 border-b border-white/5 flex items-center justify-between px-6 bg-[#0f172a] shrink-0">
+        <div class="flex items-center gap-6">
+            <h1 class="text-white font-bold tracking-tighter text-sm uppercase">BI.Enterprise</h1>
+            <nav class="flex gap-4">
+                <button onclick="changeTab('dashboard')" class="text-[10px] font-bold uppercase hover:text-white transition">Dashboard</button>
+                <button onclick="changeTab('auditoria')" class="text-[10px] font-bold uppercase text-white border-b border-blue-500">Conferência</button>
+            </nav>
         </div>
-        <nav class="flex bg-black/30 p-1 rounded-xl border border-white/5">
-            <button onclick="showTab('tab-diag')" class="nav-link" id="nav-diag">DIAGNÓSTICO</button>
-            <button onclick="showTab('tab-acerto')" class="nav-link" id="nav-acerto">ACERTOS</button>
-            <button onclick="showTab('tab-conf')" class="nav-link active" id="nav-conf">CONFERÊNCIA</button>
-            <button onclick="showTab('tab-dash')" class="nav-link" id="nav-dash">DASHBOARD</button>
-        </nav>
-        <div class="flex items-center gap-2">
-            <button onclick="exportResult()" id="btnDownload" class="hidden bg-emerald-600 hover:bg-emerald-500 text-white text-[10px] font-black px-4 py-2 rounded-lg uppercase transition-all">Baixar Relatório</button>
+        <div class="flex items-center gap-3">
             <input type="file" id="fileInput" class="hidden" multiple>
-            <label for="fileInput" class="bg-blue-600 hover:bg-blue-500 text-white text-[10px] font-black px-4 py-2 rounded-lg cursor-pointer uppercase transition-all">Upload Bases</label>
+            <label for="fileInput" class="bg-blue-600 text-white text-[10px] font-bold px-4 py-2 rounded cursor-pointer uppercase">Upload Bases</label>
         </div>
     </header>
 
-    <main class="flex-1 relative overflow-hidden bg-[#080b14]">
-        
-        <section id="tab-diag" class="tab-pane p-8 overflow-y-auto h-full">
-            <div id="diag-container" class="max-w-4xl mx-auto grid gap-6">
-                <div class="bg-[#0f172a] border border-white/5 rounded-3xl p-12 text-center">
-                    <h2 class="text-xl font-bold text-white mb-2">Análise de Colunas</h2>
-                    <p class="opacity-50 text-sm">Aguardando upload para verificar integridade dos dados.</p>
+    <main class="flex-1 flex overflow-hidden">
+        <div id="tab-dashboard" class="hidden w-full p-6 overflow-auto">
+            <div class="grid grid-cols-4 gap-4 mb-6">
+                <div class="bg-[#0f172a] p-4 rounded border border-white/5">
+                    <p class="text-[9px] uppercase font-bold opacity-50">Total Registos</p>
+                    <h2 id="totalRecords" class="text-2xl text-white font-bold">0</h2>
+                </div>
+                <div class="bg-[#0f172a] p-4 rounded border border-white/5">
+                    <p class="text-[9px] uppercase font-bold opacity-50 text-yellow-500">Divergências</p>
+                    <h2 id="diffCounter" class="text-2xl text-yellow-500 font-bold">0</h2>
+                </div>
+                <div class="bg-[#0f172a] p-4 rounded border border-white/5">
+                    <p class="text-[9px] uppercase font-bold opacity-50 text-emerald-500">Acuracidade</p>
+                    <h2 id="accuracyRate" class="text-2xl text-emerald-500 font-bold">0%</h2>
+                </div>
+                <div class="bg-[#0f172a] p-4 rounded border border-white/5">
+                    <p class="text-[9px] uppercase font-bold opacity-50 text-purple-400">Saldo Est.</p>
+                    <h2 id="financialEst" class="text-2xl text-purple-400 font-bold">R$ 0,00</h2>
                 </div>
             </div>
-        </section>
+            <div class="grid grid-cols-2 gap-6 h-80">
+                <div class="bg-[#0f172a] p-4 rounded border border-white/5"><canvas id="chartDiff"></canvas></div>
+                <div class="bg-[#0f172a] p-4 rounded border border-white/5"><canvas id="chartColumns"></canvas></div>
+            </div>
+        </div>
 
-        <section id="tab-acerto" class="tab-pane p-8 overflow-y-auto h-full">
-            <div id="acerto-content" class="max-w-4xl mx-auto grid gap-4">
-                </div>
-        </section>
-
-        <section id="tab-conf" class="tab-pane active p-4 h-full flex flex-col gap-4">
-            <div class="flex justify-between items-center bg-[#0f172a] p-3 rounded-xl border border-white/5 shadow-2xl">
-                <div class="flex gap-2">
-                    <button onclick="filterByStatus('todos')" class="f-btn active" id="f-todos">Todos</button>
-                    <button onclick="filterByStatus('relacionado')" class="f-btn text-emerald-400" id="f-rel">Relacionados</button>
-                    <button onclick="filterByStatus('divergente')" class="f-btn text-orange-400" id="f-div">Divergentes</button>
-                    <button onclick="filterByStatus('ausente')" class="f-btn text-slate-400" id="f-aus">Ausentes</button>
-                </div>
-                <input type="text" id="globalSearch" placeholder="Pesquisar em 13k registros..." class="bg-black/30 border border-white/10 rounded-lg px-4 py-1.5 text-xs text-white focus:border-blue-500 w-80 outline-none transition-all">
+        <div id="tab-auditoria" class="flex flex-col w-full">
+            <div class="p-2 px-4 border-b border-white/5 flex items-center justify-between bg-[#0f172a]/40">
+                <input type="text" id="tableSearch" placeholder="FILTRAR REGISTROS..." class="bg-transparent border-none text-xs w-1/3 outline-none text-white font-mono">
+                <select id="columnAnalytic" class="bg-[#161c2d] text-[10px] border border-white/10 rounded px-2 py-1 outline-none text-slate-400"></select>
             </div>
 
-            <div class="flex-1 grid grid-cols-3 gap-3 overflow-hidden">
-                <div class="panel">
-                    <div class="panel-header">Base A: Produção</div>
-                    <div class="overflow-auto flex-1 custom-scrollbar"><table id="tableA" class="w-full"></table></div>
+            <div class="flex-1 grid grid-cols-3 gap-[1px] bg-white/5 overflow-hidden">
+                <div class="bg-[#0b0f1a] flex flex-col overflow-hidden">
+                    <div class="bg-[#161c2d] p-2 text-[9px] font-bold uppercase text-slate-500 border-b border-white/5 text-center">Base A: Produção</div>
+                    <div class="flex-1 overflow-auto custom-scrollbar"><table id="tableA" class="w-full"></table></div>
                 </div>
-                <div class="panel">
-                    <div class="panel-header">Base B: Loja Nacional</div>
-                    <div class="overflow-auto flex-1 custom-scrollbar"><table id="tableB" class="w-full"></table></div>
+                <div class="bg-[#0b0f1a] flex flex-col overflow-hidden">
+                    <div class="bg-[#161c2d] p-2 text-[9px] font-bold uppercase text-slate-500 border-b border-white/5 text-center">Base B: Loja Nacional</div>
+                    <div class="flex-1 overflow-auto custom-scrollbar"><table id="tableB" class="w-full"></table></div>
                 </div>
-                <div class="panel border-blue-600/20">
-                    <div class="panel-header text-blue-400">Relação e Veredito</div>
-                    <div class="overflow-auto flex-1 custom-scrollbar"><table id="tableRes" class="w-full"></table></div>
-                </div>
-            </div>
-        </section>
-
-        <section id="tab-dash" class="tab-pane p-6 overflow-y-auto h-full">
-            <div id="kpi-row" class="grid grid-cols-4 gap-4 mb-6"></div>
-            <div class="grid grid-cols-2 gap-6 h-[450px]">
-                <div class="bg-[#0f172a] p-6 rounded-2xl border border-white/5 shadow-xl relative">
-                    <h3 class="text-xs font-bold mb-4 uppercase opacity-50">Status de Auditoria</h3>
-                    <canvas id="chartStatus"></canvas>
-                </div>
-                <div class="bg-[#0f172a] p-6 rounded-2xl border border-white/5 shadow-xl">
-                    <h3 class="text-xs font-bold mb-4 uppercase opacity-50">Divergências por Categoria</h3>
-                    <canvas id="chartCategory"></canvas>
+                <div class="bg-[#0b0f1a] flex flex-col overflow-hidden">
+                    <div class="bg-[#161c2d] p-2 text-[9px] font-bold uppercase text-blue-500 border-b border-white/5 text-center">Veredito Auditoria</div>
+                    <div class="flex-1 overflow-auto custom-scrollbar"><table id="tableRes" class="w-full"></table></div>
                 </div>
             </div>
-        </section>
+        </div>
     </main>
 
     <script src="script.js"></script>

@@ -2,7 +2,7 @@
 <html lang="pt-pt">
 <head>
     <meta charset="UTF-8">
-    <title>BI.Enterprise AI - Auditoria Final</title>
+    <title>BI.Enterprise AI - Auditoria Master</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
@@ -13,48 +13,53 @@
 </head>
 <body class="bg-[#0b0f1a] text-slate-400 overflow-hidden h-screen flex flex-col">
 
-    <header class="h-16 border-b border-white/5 flex items-center justify-between px-6 bg-[#0f172a] shrink-0">
-        <div class="flex items-center gap-4">
-            <h1 class="text-white font-bold text-sm uppercase">BI.Enterprise AI</h1>
-            <input type="file" id="fileInput" class="hidden" multiple accept=".xlsx,.pdf">
-            <label for="fileInput" class="bg-blue-600 hover:bg-blue-500 text-white text-[10px] font-bold px-4 py-2 rounded cursor-pointer uppercase transition-all">Importar Arquivos</label>
-        </div>
+<header class="h-16 border-b border-white/5 flex items-center justify-between px-6 bg-[#0f172a] shrink-0">
+    <div class="flex items-center gap-4">
+        <h1 class="text-white font-bold text-sm uppercase">BI.Enterprise AI</h1>
+        <input type="file" id="fileInput" class="hidden" multiple accept=".xlsx,.pdf">
+        <label for="fileInput" class="bg-blue-600 text-white text-[10px] font-bold px-4 py-2 rounded cursor-pointer uppercase">Importar Arquivos</label>
+    </div>
+    
+    <div class="flex items-center gap-2">
+        <select id="viewFilter" onchange="applyFilters()" class="bg-black/40 border border-white/10 rounded px-3 py-2 text-[10px] text-white outline-none">
+            <option value="all">TODOS OS DADOS</option>
+            <option value="diff">APENAS DIVERGÊNCIAS</option>
+            <option value="equal">APENAS IGUAIS</option>
+        </select>
+
+        <div class="h-6 w-[1px] bg-white/10 mx-2"></div>
         
-        <div class="flex items-center gap-2">
-            <button onclick="exportExcel()" class="bg-emerald-600 hover:bg-emerald-500 text-white text-[10px] font-bold px-3 py-2 rounded uppercase transition-all">Baixar Excel</button>
-            <button onclick="exportPDF()" class="bg-red-600 hover:bg-red-500 text-white text-[10px] font-bold px-3 py-2 rounded uppercase transition-all">Baixar PDF</button>
-            <div class="h-6 w-[1px] bg-white/10 mx-2"></div>
-            <input type="password" id="geminiKey" placeholder="Gemini API Key" class="bg-black/40 border border-white/10 rounded px-3 py-1.5 text-[10px] w-40 text-white outline-none focus:border-purple-500">
-            <button id="btnAi" class="bg-purple-600 hover:bg-purple-500 text-white text-[10px] font-bold px-4 py-2 rounded uppercase">Análise IA</button>
-            <button onclick="location.reload()" class="text-[9px] font-bold hover:text-red-400 ml-2 uppercase">Reset</button>
+        <button onclick="exportExcel()" class="bg-emerald-600 text-white text-[10px] font-bold px-3 py-2 rounded uppercase">Baixar Excel</button>
+        <button onclick="exportPDF()" class="bg-red-600 text-white text-[10px] font-bold px-3 py-2 rounded uppercase">Baixar PDF</button>
+        <button id="btnAi" class="bg-purple-600 text-white text-[10px] font-bold px-4 py-2 rounded uppercase ml-2">Análise IA</button>
+    </div>
+</header>
+
+<main class="flex-1 flex overflow-hidden">
+    <aside class="w-72 border-r border-white/5 bg-[#0f172a]/50 p-5 flex flex-col gap-6 shrink-0">
+        <div class="h-44"><canvas id="statusChart"></canvas></div>
+        <div class="kpi-card border-purple-500/30">
+            <p class="text-[9px] font-bold text-purple-400 uppercase mb-2">Relatório de Inteligência</p>
+            <div id="aiTxt" class="text-[10px] leading-relaxed text-slate-200 italic">Aguardando dados...</div>
         </div>
-    </header>
+    </aside>
 
-    <main class="flex-1 flex overflow-hidden">
-        <aside class="w-72 border-r border-white/5 bg-[#0f172a]/50 p-5 flex flex-col gap-6 overflow-y-auto shrink-0">
-            <div class="h-44 relative"><canvas id="statusChart"></canvas></div>
-            <div id="aiResponse" class="kpi-card border-purple-500/30">
-                <p class="text-[9px] font-bold text-purple-400 uppercase mb-2">Relatório IA</p>
-                <div id="aiTxt" class="text-[10px] leading-relaxed text-slate-200 italic">Pronto para analisar dados.</div>
-            </div>
-        </aside>
+    <section class="flex-1 flex flex-col min-w-0">
+        <div class="grid grid-cols-3 gap-4 p-4 bg-[#0f172a]/20 shrink-0">
+            <div class="kpi-card"><p class="kpi-label">Registros</p><h2 id="kpiRows" class="kpi-value text-white">0</h2></div>
+            <div class="kpi-card"><p class="kpi-label text-orange-500">Divergências</p><h2 id="kpiDiffs" class="kpi-value text-orange-500">0</h2></div>
+            <div class="kpi-card"><p class="kpi-label text-emerald-500">Acuracidade</p><h2 id="kpiAcc" class="kpi-value text-emerald-500">0%</h2></div>
+        </div>
 
-        <section class="flex-1 flex flex-col min-w-0">
-            <div class="grid grid-cols-3 gap-4 p-4 bg-[#0f172a]/20 shrink-0">
-                <div class="kpi-card"><p class="kpi-label">Linhas Totais</p><h2 id="kpiRows" class="kpi-value text-white">0</h2></div>
-                <div class="kpi-card"><p class="kpi-label text-orange-500">Divergências</p><h2 id="kpiDiffs" class="kpi-value text-orange-500">0</h2></div>
-                <div class="kpi-card"><p class="kpi-label">Acuracidade</p><h2 id="kpiAcc" class="kpi-value text-emerald-500">0%</h2></div>
-            </div>
+        <div class="table-container">
+            <table id="mainTable">
+                <thead id="tableHeader"></thead>
+                <tbody id="tableBody"></tbody>
+            </table>
+        </div>
+    </section>
+</main>
 
-            <div class="table-container">
-                <table id="mainTable">
-                    <thead id="tableHeader"></thead>
-                    <tbody id="tableBody"></tbody>
-                </table>
-            </div>
-        </section>
-    </main>
-
-    <script src="script.js"></script>
+<script src="script.js"></script>
 </body>
 </html>

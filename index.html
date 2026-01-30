@@ -2,94 +2,82 @@
 <html lang="pt-br">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>BI.Enterprise AI - Automação Total</title>
+    <title>BI.Enterprise AI - Analytics</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
     <link rel="stylesheet" href="style.css">
 </head>
-<body class="bg-[#0b0f1a] text-slate-400 h-screen flex flex-col overflow-hidden">
+<body class="bg-[#0b0f1a] text-slate-400 h-screen flex flex-col overflow-hidden font-sans">
 
-    <header class="h-16 border-b border-white/5 flex items-center justify-between px-6 bg-[#0f172a] shrink-0">
+    <header class="h-16 border-b border-white/5 flex items-center justify-between px-8 bg-[#0f172a] shrink-0">
         <div class="flex items-center gap-6">
             <div class="flex items-center gap-2 text-white">
-                <div class="w-8 h-8 bg-blue-600 rounded flex items-center justify-center font-bold italic">BI</div>
-                <span class="font-bold text-sm tracking-tighter uppercase">Enterprise AI</span>
+                <div class="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center font-bold italic shadow-lg">BI</div>
+                <span class="font-black text-sm tracking-widest uppercase">Enterprise</span>
             </div>
             <input type="file" id="fileInput" class="hidden" multiple>
-            <label for="fileInput" class="bg-blue-600 hover:bg-blue-500 text-white text-[10px] font-bold px-4 py-2 rounded cursor-pointer uppercase transition-all">Carregar Arquivos</label>
+            <label for="fileInput" class="bg-blue-600 hover:bg-blue-500 text-white text-[10px] font-bold px-6 py-2.5 rounded-full cursor-pointer uppercase transition-all">Importar Arquivos</label>
         </div>
 
-        <nav class="flex bg-black/40 p-1 rounded-lg border border-white/10">
-            <button onclick="switchTab('tab-charts')" class="tab-btn active" id="btn-charts">ESTATÍSTICAS</button>
-            <button onclick="switchTab('tab-table')" class="tab-btn" id="btn-table">DADOS & FILTROS</button>
-            <button onclick="switchTab('tab-ai')" class="tab-btn" id="btn-ai-tab">RELATÓRIO AUTOMÁTICO</button>
+        <nav class="flex bg-black/20 p-1 rounded-xl border border-white/5">
+            <button onclick="switchTab('tab-charts')" class="tab-btn active" id="btn-charts">DASHBOARD</button>
+            <button onclick="switchTab('tab-table')" class="tab-btn" id="btn-table">AUDITORIA</button>
+            <button onclick="switchTab('tab-ai')" class="tab-btn" id="btn-ai-tab">INSIGHTS</button>
         </nav>
         
-        <div class="flex items-center gap-3">
-            <button onclick="exportExcel()" class="bg-emerald-600/20 text-emerald-500 border border-emerald-600/30 text-[9px] font-bold px-3 py-2 rounded hover:bg-emerald-600 hover:text-white transition-all">BAIXAR EXCEL</button>
-            <button onclick="exportPDF()" class="bg-red-600/20 text-red-500 border border-red-600/30 text-[9px] font-bold px-3 py-2 rounded hover:bg-red-600 hover:text-white transition-all">BAIXAR PDF</button>
+        <div class="flex gap-4">
+            <button onclick="exportExcel()" class="text-emerald-500 text-[10px] font-bold uppercase">Excel</button>
+            <button onclick="exportPDF()" class="bg-red-500/10 text-red-500 border border-red-500/20 text-[10px] font-bold px-4 py-2 rounded-lg hover:bg-red-500 hover:text-white transition-all">PDF</button>
         </div>
     </header>
 
     <main class="flex-1 relative overflow-hidden">
+        
         <div id="tab-charts" class="tab-content active overflow-y-auto p-8">
-            <div class="max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-6">
-                <div class="kpi-card"><p class="kpi-label">Diferenças vs Acertos</p><canvas id="chartStatus"></canvas></div>
-                <div class="kpi-card"><p class="kpi-label">Top 5 Cidades</p><canvas id="chartCities"></canvas></div>
-                <div class="kpi-card border-l-4 border-blue-500 flex flex-col justify-center">
-                    <p class="kpi-label">Total de Linhas</p>
-                    <h2 id="kpiRows" class="text-3xl font-bold text-white">0</h2>
+            <div class="max-w-7xl mx-auto space-y-6">
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                    <div class="kpi-card-new"><p>Total</p><h2 id="kpiRows">0</h2></div>
+                    <div class="kpi-card-new border-b-2 border-orange-500"><p>Divergências</p><h2 id="kpiDiffs" class="text-orange-500">0</h2></div>
+                    <div class="kpi-card-new border-b-2 border-emerald-500"><p>Conforme</p><h2 id="kpiEquals" class="text-emerald-500">0</h2></div>
+                    <div class="kpi-card-new border-b-2 border-blue-500"><p>Precisão</p><h2 id="kpiAccuracy" class="text-blue-400">0%</h2></div>
                 </div>
-                <div class="kpi-card border-l-4 border-orange-500 flex flex-col justify-center">
-                    <p class="kpi-label">Divergências (Laranja)</p>
-                    <h2 id="kpiDiffs" class="text-3xl font-bold text-orange-500">0</h2>
-                </div>
-                <div class="kpi-card border-l-4 border-emerald-500 flex flex-col justify-center">
-                    <p class="kpi-label">Dados Idênticos (Verde)</p>
-                    <h2 id="kpiEquals" class="text-3xl font-bold text-emerald-500">0</h2>
-                </div>
-                <div class="kpi-card border-l-4 border-slate-500 flex flex-col justify-center">
-                    <p class="kpi-label">Não Encontrados</p>
-                    <h2 id="kpiMissing" class="text-3xl font-bold text-slate-300">0</h2>
+
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    <div class="chart-box lg:col-span-2">
+                        <h3>Volume de Registros por Cidade (Top 10)</h3>
+                        <div class="chart-wrapper"><canvas id="chartCities"></canvas></div>
+                    </div>
+                    <div class="chart-box">
+                        <h3>Status da Auditoria</h3>
+                        <div class="chart-wrapper"><canvas id="chartStatus"></canvas></div>
+                    </div>
+                    <div class="chart-box lg:col-span-3">
+                        <h3>Distribuição de Situações Acadêmicas</h3>
+                        <div class="chart-wrapper"><canvas id="chartSituations"></canvas></div>
+                    </div>
                 </div>
             </div>
         </div>
 
-        <div id="tab-table" class="tab-content h-full p-4">
-            <div class="max-w-full mx-auto h-full flex flex-col bg-[#0f172a] rounded-lg border border-white/5 shadow-2xl">
-                <div class="p-3 border-b border-white/5 flex justify-between">
-                    <span class="text-[10px] font-bold uppercase self-center text-slate-500">
-                        Filtro de visualização:
-                    </span>
-                    <select id="viewFilter" onchange="renderTable()" class="bg-black text-white text-[10px] p-1 border border-white/20 rounded outline-none">
-                        <option value="all">Ver Tudo (Completo)</option>
-                        <option value="diff">Ver apenas Divergências</option>
-                        <option value="equal">Ver apenas Idênticos</option>
+        <div id="tab-table" class="tab-content h-full p-6">
+            <div class="bg-[#0f172a]/80 backdrop-blur rounded-2xl border border-white/5 h-full flex flex-col overflow-hidden shadow-2xl">
+                <div class="p-4 border-b border-white/5 flex justify-between bg-black/10">
+                    <h2 class="text-xs font-bold uppercase">Filtro de Visualização</h2>
+                    <select id="viewFilter" onchange="renderTable()" class="bg-[#1e293b] text-white text-[10px] px-3 py-1.5 rounded-lg">
+                        <option value="all">Ver Todos</option>
+                        <option value="diff">Apenas Divergências</option>
+                        <option value="equal">Apenas Idênticos</option>
                     </select>
                 </div>
-                <div class="table-container overflow-auto flex-1">
-                    <table id="mainTable">
-                        <thead id="tableHeader"></thead>
-                        <tbody id="tableBody"></tbody>
-                    </table>
-                </div>
+                <div class="overflow-auto flex-1"><table id="mainTable"><thead><tr id="tableHeader"></tr></thead><tbody id="tableBody"></tbody></table></div>
             </div>
         </div>
 
         <div id="tab-ai" class="tab-content h-full p-10">
-            <div class="max-w-4xl mx-auto bg-[#161c2d] border border-blue-500/20 rounded-xl p-8 shadow-2xl h-full flex flex-col">
-                <div class="flex items-center justify-between mb-4 border-b border-white/5 pb-2">
-                    <h2 class="text-blue-400 font-bold uppercase text-xs tracking-widest">Parecer de Auditoria Automática</h2>
-                    <div id="loader" class="hidden animate-pulse text-[10px] text-blue-300">PROCESSANDO...</div>
-                </div>
-                <div id="aiTxt" class="flex-1 overflow-y-auto pr-4 text-sm text-slate-300 leading-relaxed space-y-4">
-                    Carregue dois arquivos para gerar o relatório de cruzamento.
-                </div>
+            <div class="max-w-3xl mx-auto bg-[#1e293b] rounded-3xl p-10 shadow-2xl border border-white/5" id="aiTxt">
+                Relatório aguardando dados...
             </div>
         </div>
     </main>

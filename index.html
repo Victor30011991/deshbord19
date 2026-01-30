@@ -2,7 +2,7 @@
 <html lang="pt-br">
 <head>
     <meta charset="UTF-8">
-    <title>BI.Enterprise AI - Auditoria Automática</title>
+    <title>BI.Enterprise AI - Q.A. System</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
@@ -16,49 +16,49 @@
     <header class="h-16 border-b border-white/5 flex items-center justify-between px-6 bg-[#0f172a] shrink-0">
         <div class="flex items-center gap-6">
             <div class="flex items-center gap-2">
-                <div class="w-8 h-8 bg-blue-600 rounded flex items-center justify-center text-white font-bold italic">BI</div>
-                <h1 class="text-white font-bold text-sm uppercase tracking-tighter">Enterprise AI</h1>
+                <div class="w-8 h-8 bg-blue-600 rounded flex items-center justify-center text-white font-bold">BI</div>
+                <h1 class="text-white font-bold text-sm uppercase tracking-widest">Enterprise AI</h1>
             </div>
             <input type="file" id="fileInput" class="hidden" multiple>
-            <label for="fileInput" class="bg-blue-600 hover:bg-blue-500 text-white text-[10px] font-bold px-4 py-2 rounded cursor-pointer uppercase transition-all">Importar Dados</label>
+            <label for="fileInput" class="bg-blue-600 hover:bg-blue-500 text-white text-[10px] font-bold px-4 py-2 rounded cursor-pointer uppercase transition-all">Importar Arquivos</label>
         </div>
 
         <nav class="flex bg-black/40 p-1 rounded-lg border border-white/10 shrink-0">
-            <button onclick="switchTab('tab-charts')" class="tab-btn active" id="btn-charts">📊 DASHBOARD</button>
-            <button onclick="switchTab('tab-table')" class="tab-btn" id="btn-table">📋 TABELA</button>
-            <button onclick="switchTab('tab-ai')" class="tab-btn" id="btn-ai-tab">🤖 RELATÓRIO IA</button>
+            <button onclick="switchTab('tab-charts')" class="tab-btn active" id="btn-charts">DASHBOARD</button>
+            <button onclick="switchTab('tab-table')" class="tab-btn" id="btn-table">TABELA</button>
+            <button onclick="switchTab('tab-ai')" class="tab-btn" id="btn-ai-tab">RELATÓRIO IA</button>
         </nav>
         
         <div class="flex items-center gap-2">
-            <input type="password" id="geminiKey" placeholder="Gemini Key" class="bg-black/40 border border-white/10 rounded px-3 py-1.5 text-[10px] w-32 text-white outline-none focus:border-purple-500">
+            <input type="password" id="geminiKey" onchange="generateAiReport()" placeholder="API Key do Gemini" class="bg-black/40 border border-purple-500/30 rounded px-3 py-1.5 text-[10px] w-44 text-white outline-none focus:border-purple-500">
             <div class="h-6 w-[1px] bg-white/10 mx-1"></div>
-            <button onclick="exportExcel()" class="text-emerald-500 border border-emerald-600/30 text-[9px] font-bold px-3 py-2 rounded uppercase hover:bg-emerald-600 hover:text-white transition-all">Baixar Excel</button>
-            <button onclick="exportPDF()" class="text-red-500 border border-red-600/30 text-[9px] font-bold px-3 py-2 rounded uppercase hover:bg-red-600 hover:text-white transition-all">Baixar PDF</button>
+            <button onclick="exportExcel()" class="text-emerald-500 border border-emerald-600/30 text-[9px] font-bold px-3 py-2 rounded hover:bg-emerald-600 hover:text-white transition-all">EXCEL</button>
+            <button onclick="exportPDF()" class="text-red-500 border border-red-600/30 text-[9px] font-bold px-3 py-2 rounded hover:bg-red-600 hover:text-white transition-all">PDF</button>
         </div>
     </header>
 
     <main class="flex-1 relative overflow-hidden">
         <div id="tab-charts" class="tab-content active overflow-y-auto p-8">
             <div class="max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-6">
-                <div class="kpi-card"><p class="kpi-label">Acuracidade</p><canvas id="chartStatus"></canvas></div>
-                <div class="kpi-card"><p class="kpi-label">Principais Cidades</p><canvas id="chartCities"></canvas></div>
-                <div class="kpi-card"><p class="kpi-label">Status Geral</p><canvas id="chartStatusPie"></canvas></div>
-                <div class="kpi-card"><p class="kpi-label">Registros</p><h2 id="kpiRows" class="kpi-value">0</h2></div>
+                <div class="kpi-card"><p class="kpi-label text-blue-400">Acuracidade</p><canvas id="chartStatus"></canvas></div>
+                <div class="kpi-card"><p class="kpi-label">Diferenças por Cidade</p><canvas id="chartCities"></canvas></div>
+                <div class="kpi-card"><p class="kpi-label">Distribuição de Status</p><canvas id="chartStatusPie"></canvas></div>
+                <div class="kpi-card"><p class="kpi-label">Total Auditado</p><h2 id="kpiRows" class="kpi-value">0</h2></div>
                 <div class="kpi-card"><p class="kpi-label text-orange-500">Divergências</p><h2 id="kpiDiffs" class="kpi-value text-orange-500">0</h2></div>
-                <div class="kpi-card"><p class="kpi-label text-blue-400">Igualdades</p><h2 id="kpiEquals" class="kpi-value text-blue-400">0</h2></div>
+                <div class="kpi-card"><p class="kpi-label text-emerald-500">Conformidade</p><h2 id="kpiEquals" class="kpi-value text-emerald-500">0</h2></div>
             </div>
         </div>
 
-        <div id="tab-table" class="tab-content h-full">
-            <div class="max-w-[95%] mx-auto py-4 h-full flex flex-col">
-                <div class="bg-[#0f172a] p-3 rounded-t-lg border border-white/5">
-                    <select id="viewFilter" onchange="applyFilters()" class="bg-black border border-white/20 rounded px-4 py-2 text-[10px] text-white outline-none">
+        <div id="tab-table" class="tab-content h-full p-6">
+            <div class="max-w-[95%] mx-auto bg-[#0f172a] rounded-lg border border-white/10 h-full flex flex-col">
+                <div class="p-3 border-b border-white/5">
+                    <select id="viewFilter" onchange="applyFilters()" class="bg-black text-white text-[10px] px-4 py-2 rounded border border-white/20">
                         <option value="all">TODOS OS DADOS</option>
                         <option value="diff">DIVERGÊNCIAS</option>
-                        <option value="equal">CORRELATOS</option>
+                        <option value="equal">IGUAIS</option>
                     </select>
                 </div>
-                <div class="table-container border border-white/5 rounded-b-lg">
+                <div class="table-container flex-1 overflow-auto">
                     <table id="mainTable"><thead id="tableHeader"></thead><tbody id="tableBody"></tbody></table>
                 </div>
             </div>
@@ -66,12 +66,14 @@
 
         <div id="tab-ai" class="tab-content h-full p-10">
             <div class="max-w-4xl mx-auto bg-[#161c2d] border border-purple-500/20 rounded-xl p-8 shadow-2xl h-full flex flex-col">
-                <div class="flex items-center justify-between mb-6 border-b border-white/5 pb-4">
-                    <h2 class="text-purple-400 font-bold uppercase tracking-widest text-xs">Parecer de Auditoria Automático</h2>
-                    <div id="aiLoader" class="hidden flex items-center gap-2"><div class="w-2 h-2 bg-purple-500 animate-pulse rounded-full"></div><span class="text-[9px]">IA ANALISANDO...</span></div>
+                <div class="flex items-center justify-between mb-4 border-b border-white/5 pb-2">
+                    <h2 class="text-purple-400 font-bold uppercase text-xs">Parecer Técnico Detalhado</h2>
+                    <div id="aiLoader" class="hidden animate-pulse flex gap-2 items-center text-[10px] text-purple-300">
+                        <div class="w-2 h-2 bg-purple-500 rounded-full"></div> ANALISANDO...
+                    </div>
                 </div>
-                <div id="aiTxt" class="flex-1 overflow-y-auto pr-4 text-slate-300 leading-relaxed space-y-4 text-sm font-light italic">
-                    Aguardando arquivos para iniciar o parecer...
+                <div id="aiTxt" class="flex-1 overflow-y-auto pr-4 text-sm text-slate-300 leading-relaxed font-light italic">
+                    O relatório será gerado automaticamente após a importação.
                 </div>
             </div>
         </div>

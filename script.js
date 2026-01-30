@@ -1,8 +1,8 @@
-document.addEventListener('DOMContentLoaded', () => {
-    let uploadedFiles = [];
-    let allResults = []; 
-    let chartD, chartC;
+let uploadedFiles = [];
+let allResults = []; 
+let chartD, chartC;
 
+document.addEventListener('DOMContentLoaded', () => {
     const fileInput = document.getElementById('fileInput');
     const tableSearch = document.getElementById('tableSearch');
     const filterStatus = document.getElementById('filterStatus');
@@ -20,7 +20,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function initDashboard() {
         if (uploadedFiles.length === 0) return;
-        document.getElementById('fileStatus').innerText = `${uploadedFiles.length} Arquivos`;
+        document.getElementById('fileStatus').innerText = `${uploadedFiles.length} Ficheiros`;
 
         const cols = Object.keys(uploadedFiles[0].data[0] || {});
         const sel = document.getElementById('columnAnalytic');
@@ -43,9 +43,9 @@ document.addEventListener('DOMContentLoaded', () => {
             let diffObj = { "_id": i + 1, "_hasDiff": false };
             
             keys.forEach(k => {
-                if (uploadedFiles.length > 1 && row[k] !== row2[k]) {
+                if (uploadedFiles.length > 1 && String(row[k]) !== String(row2[k])) {
                     diffObj["_hasDiff"] = true;
-                    diffObj[k] = `${row[k] || 'Ø'} ⮕ ${row2[k] || 'Ø'}`; // Destaque visual
+                    diffObj[k] = `${row[k] || 'Ø'} ⮕ ${row2[k] || 'Ø'}`;
                 } else {
                     diffObj[k] = row[k];
                 }
@@ -66,7 +66,7 @@ document.addEventListener('DOMContentLoaded', () => {
             return matchesSearch && matchesStatus;
         });
 
-        // Cálculos de KPI
+        // Atualização de KPIs
         const totalRows = allResults.length;
         const diffCount = allResults.filter(r => r._hasDiff).length;
         const accuracy = totalRows > 0 ? (((totalRows - diffCount) / totalRows) * 100).toFixed(1) : 0;
@@ -75,6 +75,7 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('totalDiffs').innerText = diffCount.toLocaleString();
         document.getElementById('accuracyRate').innerText = `${accuracy}%`;
         document.getElementById('totalCols').innerText = keys.length;
+        document.getElementById('diffCounter').innerText = `${diffCount} Divergências`;
 
         // Renderização da Tabela
         document.getElementById('tableHeader').innerHTML = `<tr><th>REF</th>${keys.map(k => `<th>${k}</th>`).join('')}</tr>`;
@@ -88,8 +89,8 @@ document.addEventListener('DOMContentLoaded', () => {
             </tr>
         `).join('');
 
-        if(uploadedFiles.length > 1) {
-            document.getElementById('btnExport').classList.remove('hidden');
+        if(uploadedFiles.length > 0) {
+            document.getElementById('exportGroup').classList.remove('hidden');
             updatePieChart(diffCount, totalRows);
         }
     }
@@ -100,7 +101,7 @@ document.addEventListener('DOMContentLoaded', () => {
         chartD = new Chart(ctx, {
             type: 'doughnut',
             data: {
-                labels: ['Divergências', 'Iguais'],
+                labels: ['Erros', 'Ok'],
                 datasets: [{ data: [diffs, total - diffs], backgroundColor: ['#f59e0b', '#10b981'], borderWidth: 0 }]
             },
             options: { cutout: '80%', plugins: { legend: { display: false } } }
@@ -109,7 +110,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function updateColumnChart(col) {
         const counts = {};
-        uploadedFiles[0].data.forEach(r => { counts[r[col]] = (counts[r[col]] || 0) + 1; });
+        uploadedFiles[0].data.forEach(r => { 
+            const val = r[col] || "Vazio";
+            counts[val] = (counts[val] || 0) + 1; 
+        });
         const ctx = document.getElementById('chartColumns').getContext('2d');
         if(chartC) chartC.destroy();
         chartC = new Chart(ctx, {
@@ -125,10 +129,38 @@ document.addEventListener('DOMContentLoaded', () => {
     tableSearch.addEventListener('input', renderUI);
     filterStatus.addEventListener('change', renderUI);
     document.getElementById('btnClear').onclick = () => location.reload();
-    document.getElementById('btnExport').onclick = () => {
-        const ws = XLSX.utils.json_to_sheet(allResults);
-        const wb = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(wb, ws, "Auditoria");
-        XLSX.writeFile(wb, "BI_Analytics_Export.xlsx");
-    };
 });
+
+// Funções Globais de Exportação
+function exportExcel() {
+    const filter = document.getElementById('filterStatus').value;
+    const dataToExport = filter === 'diff' ? allResults.filter(r => r._hasDiff) : allResults;
+    const cleanData = dataToExport.map(({_hasDiff, ...rest}) => rest);
+    const ws = XLSX.utils.json_to_sheet(cleanData);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Auditoria");
+    XLSX.writeFile(wb, `Auditoria_BI_${filter}.xlsx`);
+}
+
+function exportPDF() {
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF('l', 'mm', 'a4');
+    const filter = document.getElementById('filterStatus').value;
+    const dataToExport = filter === 'diff' ? allResults.filter(r => r._hasDiff) : allResults;
+    const keys = Object.keys(uploadedFiles[0].data[0] || {});
+
+    doc.text("Relatório de Divergências", 14, 15);
+    doc.autoTable({
+        startY: 20,
+        head: [['REF', ...keys]],
+        body: dataToExport.map(r => [r._id, ...keys.map(k => r[k])]),
+        styles: { fontSize: 7 },
+        headStyles: { fillColor: [15, 23, 42] },
+        didParseCell: function(data) {
+            if (data.section === 'body' && String(data.cell.raw).includes('⮕')) {
+                data.cell.styles.textColor = [245, 158, 11];
+            }
+        }
+    });
+    doc.save("Relatorio_BI.pdf");
+}

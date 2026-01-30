@@ -12,78 +12,99 @@ function switchTab(id) {
 
 document.getElementById('fileInput').addEventListener('change', async (e) => {
     const files = Array.from(e.target.files);
+    if (files.length === 0) return;
+    
     storage = [];
     for (let f of files) {
-        const data = await parseFile(f);
-        storage.push({ name: f.name, rows: data });
+        try {
+            const data = await parseFile(f);
+            storage.push({ name: f.name, rows: data });
+        } catch (err) {
+            console.error("Erro ao ler arquivo:", f.name);
+        }
     }
-    if (storage.length > 0) {
+
+    if (storage.length >= 2) {
         processAudit();
-        generateAiReport(); // Dispara automático
+        generateAiReport();
+    } else {
+        alert("Para auditoria cruzada, carregue pelo menos 2 arquivos.");
     }
 });
 
 async function parseFile(file) {
-    return new Promise(resolve => {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
         if (file.name.endsWith('.csv')) {
-            // Tenta identificar o separador (vírgula ou ponto e vírgula)
             Papa.parse(file, { 
                 header: true, 
                 skipEmptyLines: true,
-                complete: res => resolve(res.data) 
+                complete: res => resolve(res.data),
+                error: err => reject(err)
             });
         } else {
-            const reader = new FileReader();
             reader.onload = e => {
-                const wb = XLSX.read(e.target.result, { type: 'binary' });
+                const data = new Uint8Array(e.target.result);
+                const wb = XLSX.read(data, { type: 'array' });
                 resolve(XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]]));
             };
-            reader.readAsBinaryString(file);
+            reader.readAsArrayBuffer(file);
         }
     });
 }
 
-// O segredo da "Extração Sem Comando": Busca por palavras-chave nos nomes das colunas
 function findCol(row, keywords) {
-    const keys = Object.keys(row || {});
-    return keys.find(k => keywords.some(kw => k.toUpperCase().includes(kw))) || null;
+    if (!row) return null;
+    const keys = Object.keys(row);
+    return keys.find(k => keywords.some(kw => k.toUpperCase().includes(kw.toUpperCase()))) || null;
 }
 
 function processAudit() {
     const base = storage[0].rows;
-    const comp = storage[1]?.rows || null;
+    const comp = storage[1].rows;
     let dCount = 0;
 
-    // Detecta automaticamente quem é o aluno e quem é o status nos seus arquivos
-    const colId = findCol(base[0], ["ALUNO", "NOME", "CD_ALUNO", "NOME_ALUNO"]);
-    const colStatus = findCol(base[0], ["STATUS", "SITUACAO", "SITUACAO_MATRICULA"]);
-    const colCidade = findCol(base[0], ["CIDADE", "MUNICIPIO", "MUNICIPIO_ACAO"]);
+    const colIdBase = findCol(base[0], ["ALUNO", "NOME", "CD_ALUNO", "NOME_ALUNO"]);
+    const colStatusBase = findCol(base[0], ["STATUS", "SITUACAO", "SITUACAO_MATRICULA"]);
+    const colCidadeBase = findCol(base[0], ["CIDADE", "MUNICIPIO"]);
+
+    const colIdComp = findCol(comp[0], ["ALUNO", "NOME", "CD_ALUNO"]);
+    const colStatusComp = findCol(comp[0], ["STATUS", "SITUACAO"]);
 
     auditedData = base.map(row => {
         let isDiff = false;
-        if (comp) {
-            const nomeBase = String(row[colId] || "").trim().toLowerCase();
-            const match = comp.find(r => String(r[findCol(comp[0], ["ALUNO", "NOME"])] || "").trim().toLowerCase() === nomeBase);
-            
-            if (!match) isDiff = true; // Aluno não encontrado no outro arquivo
-            else {
-                const s1 = String(row[colStatus] || "").trim();
-                const s2 = String(match[findCol(comp[0], ["STATUS", "SITUACAO"])] || "").trim();
-                if (s1 !== s2) isDiff = true; // Status mudou
-            }
+        const idValue = String(row[colIdBase] || "").trim().toLowerCase();
+        
+        const match = comp.find(r => String(r[colIdComp] || "").trim().toLowerCase() === idValue);
+        
+        if (!match) {
+            isDiff = true; // Não encontrado no segundo arquivo
+        } else {
+            const s1 = String(row[colStatusBase] || "").trim();
+            const s2 = String(match[colStatusComp] || "").trim();
+            if (s1 !== s2) isDiff = true; // Status diferente
         }
+
         if (isDiff) dCount++;
         return { ...row, _isDiff: isDiff };
     });
 
-    // Atualiza Painéis
+    updateUI(dCount, colCidadeBase);
+}
+
+function updateUI(dCount, colCidade) {
     document.getElementById('kpiRows').innerText = auditedData.length;
     document.getElementById('kpiDiffs').innerText = dCount;
     document.getElementById('kpiEquals').innerText = auditedData.length - dCount;
 
-    renderChart('chartStatus', 'doughnut', [dCount, auditedData.length - dCount], ['#f59e0b', '#10b981'], ['Diferente', 'Igual']);
+    renderChart('chartStatus', 'doughnut', [dCount, auditedData.length - dCount], ['#f59e0b', '#10b981'], ['Divergente', 'Ok']);
     
-    const cityData = auditedData.reduce((acc, r) => { const c = r[colCidade] || "N/A"; acc[c] = (acc[c] || 0) + 1; return acc; }, {});
+    const cityData = auditedData.reduce((acc, r) => { 
+        const c = r[colCidade] || "Não Informado"; 
+        acc[c] = (acc[c] || 0) + 1; 
+        return acc; 
+    }, {});
+    
     const topCities = Object.entries(cityData).sort((a,b) => b[1] - a[1]).slice(0, 5);
     renderChart('chartCities', 'bar', topCities.map(c => c[1]), ['#3b82f6'], topCities.map(c => c[0]));
 
@@ -95,54 +116,88 @@ function renderChart(id, type, data, colors, labels) {
     charts[id] = new Chart(document.getElementById(id), {
         type: type,
         data: { labels: labels, datasets: [{ data: data, backgroundColor: colors, borderWidth: 0 }] },
-        options: { plugins: { legend: { position: 'bottom', labels: { color: '#94a3b8', font: { size: 9 } } } } }
+        options: { 
+            responsive: true, 
+            maintainAspectRatio: false,
+            plugins: { legend: { position: 'bottom', labels: { color: '#94a3b8', font: { size: 10 } } } } 
+        }
     });
 }
 
 function renderTable() {
-    const keys = Object.keys(auditedData[0]).filter(k => !k.startsWith('_'));
+    const firstRow = auditedData[0] || {};
+    const keys = Object.keys(firstRow).filter(k => !k.startsWith('_'));
     document.getElementById('tableHeader').innerHTML = `<tr>${keys.map(k => `<th>${k}</th>`).join('')}</tr>`;
     applyFilters();
 }
 
 function applyFilters() {
     const mode = document.getElementById('viewFilter').value;
-    const keys = Object.keys(auditedData[0]).filter(k => !k.startsWith('_'));
+    const firstRow = auditedData[0] || {};
+    const keys = Object.keys(firstRow).filter(k => !k.startsWith('_'));
     const filtered = auditedData.filter(r => mode === 'all' ? true : r._isDiff);
-    document.getElementById('tableBody').innerHTML = filtered.slice(0, 250).map(r => `
-        <tr class="${r._isDiff ? 'diff-row' : ''}">${keys.map(k => `<td>${r[k] || ''}</td>`).join('')}</tr>
+    
+    document.getElementById('tableBody').innerHTML = filtered.slice(0, 500).map(r => `
+        <tr class="${r._isDiff ? 'diff-row' : ''}">
+            ${keys.map(k => `<td>${r[k] !== undefined ? r[k] : ''}</td>`).join('')}
+        </tr>
     `).join('');
 }
 
 async function generateAiReport() {
     const key = document.getElementById('geminiKey').value;
     const aiTxt = document.getElementById('aiTxt');
-    if (!key) return aiTxt.innerHTML = "<i>Análise IA silenciada (Chave não informada). Os gráficos e tabelas acima já mostram os erros para correção.</i>";
+    if (!key) {
+        aiTxt.innerHTML = "<i>Análise IA desativada. Insira a Chave Gemini no topo para obter um parecer técnico.</i>";
+        return;
+    }
 
     document.getElementById('aiLoader').classList.remove('hidden');
-    aiTxt.innerHTML = "Extraindo informações cruzadas...";
+    aiTxt.innerHTML = "Cruzando dados e gerando insights...";
 
-    const resumo = `Total: ${auditedData.length}, Erros: ${auditedData.filter(r => r._isDiff).length}`;
+    const resumo = {
+        total: auditedData.length,
+        erros: auditedData.filter(r => r._isDiff).length,
+        amostra: auditedData.filter(r => r._isDiff).slice(0, 3)
+    };
+
     try {
-        const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${key}`, {
-            method: 'POST', body: JSON.stringify({ contents: [{ parts: [{ text: "Gere um parecer de auditoria sobre: " + resumo }] }] })
+        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${key}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                contents: [{ parts: [{ text: `Aja como um auditor de dados profissional. Analise este resumo de BI: ${JSON.stringify(resumo)}. Escreva um parecer curto e objetivo sobre a saúde desses dados e o que deve ser corrigido prioritariamente. Use HTML simples para formatar (<b>, <br>).` }] }]
+            })
         });
-        const data = await res.json();
-        aiTxt.innerHTML = data.candidates[0].content.parts[0].text.replace(/\n/g, '<br>');
-    } catch (e) { aiTxt.innerHTML = "IA Offline."; }
-    finally { document.getElementById('aiLoader').classList.add('hidden'); }
+        const data = await response.json();
+        aiTxt.innerHTML = data.candidates[0].content.parts[0].text;
+    } catch (e) {
+        aiTxt.innerHTML = "Erro ao conectar com a IA. Verifique sua chave.";
+    } finally {
+        document.getElementById('aiLoader').classList.add('hidden');
+    }
 }
 
 function exportExcel() {
-    const ws = XLSX.utils.json_to_sheet(auditedData);
+    const exportData = auditedData.map(r => {
+        const { _isDiff, ...rest } = r;
+        return { ...rest, STATUS_AUDITORIA: _isDiff ? 'DIVERGENTE' : 'OK' };
+    });
+    const ws = XLSX.utils.json_to_sheet(exportData);
     const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "Auditoria");
-    XLSX.writeFile(wb, "Auditoria_BI.xlsx");
+    XLSX.utils.book_append_sheet(wb, ws, "Relatorio");
+    XLSX.writeFile(wb, "Auditoria_Enterprise_AI.xlsx");
 }
 
 function exportPDF() {
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF('l', 'mm', 'a4');
-    doc.autoTable({ html: '#mainTable', theme: 'grid', styles: { fontSize: 6 } });
-    doc.save("Relatorio_Auditoria.pdf");
+    doc.text("Relatório de Auditoria BI Enterprise AI", 14, 15);
+    doc.autoTable({ 
+        html: '#mainTable', 
+        startY: 20,
+        styles: { fontSize: 7, cellPadding: 2 },
+        headStyles: { fillColor: [30, 41, 59] }
+    });
+    doc.save("Auditoria.pdf");
 }

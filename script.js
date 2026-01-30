@@ -17,7 +17,10 @@ document.getElementById('fileInput').addEventListener('change', async (e) => {
         const data = await parseFile(f);
         storage.push({ name: f.name, rows: data });
     }
-    if (storage.length > 0) processAudit();
+    if (storage.length > 0) {
+        processAudit();
+        generateAiReport(); // GERAÇÃO AUTOMÁTICA
+    }
 });
 
 async function parseFile(file) {
@@ -37,16 +40,14 @@ async function parseFile(file) {
 
 function processAudit() {
     const base = storage[0].rows;
-    const comp = storage[1] ? storage[1].rows : null;
+    const comp = storage[1]?.rows || null;
     let diffs = 0;
 
     auditedData = base.map(row => {
         let isDiff = false;
         if (comp) {
-            // Busca por NOME ou ALUNO ou MATRÍCULA
             const id = (row.ALUNO || row.NOME_ALUNO || row.CD_MATRICULA || "").toString().trim().toLowerCase();
             const match = comp.find(r => (r.ALUNO || r.NOME_ALUNO || r.CD_MATRICULA || "").toString().trim().toLowerCase() === id);
-            
             if (!match) isDiff = true;
             else {
                 const s1 = (row.STATUS || row.SITUACAO_MATRICULA || "").toString().trim();
@@ -58,34 +59,24 @@ function processAudit() {
         return { ...row, _isDiff: isDiff };
     });
 
-    updateUI(diffs);
+    updateDashboard(diffs);
+    renderTable(Object.keys(auditedData[0]));
 }
 
-function updateUI(diffCount) {
+function updateDashboard(diffCount) {
     const total = auditedData.length;
     document.getElementById('kpiRows').innerText = total;
     document.getElementById('kpiDiffs').innerText = diffCount;
     document.getElementById('kpiEquals').innerText = total - diffCount;
 
-    // Dashboard 1: Acuracidade
     renderChart('chartStatus', 'doughnut', [diffCount, total - diffCount], ['#f59e0b', '#10b981'], ['Diferenças', 'Iguais']);
-
-    // Dashboard 2: Cidades com mais Divergências
-    const cities = auditedData.filter(r => r._isDiff).reduce((acc, r) => { 
-        const c = r.CIDADE || r.MUNICIPIO_ACAO || "N/A";
-        acc[c] = (acc[c] || 0) + 1; return acc; 
-    }, {});
+    
+    const cities = auditedData.reduce((acc, r) => { const c = r.CIDADE || r.MUNICIPIO_ACAO || "Outros"; acc[c] = (acc[c] || 0) + 1; return acc; }, {});
     const topCities = Object.entries(cities).sort((a,b) => b[1] - a[1]).slice(0, 5);
     renderChart('chartCities', 'bar', topCities.map(c => c[1]), ['#3b82f6'], topCities.map(c => c[0]));
 
-    // Dashboard 3: Status Pie
-    const stats = auditedData.reduce((acc, r) => { 
-        const s = r.STATUS || r.SITUACAO_MATRICULA || "Indefinido";
-        acc[s] = (acc[s] || 0) + 1; return acc; 
-    }, {});
-    renderChart('chartStatusPie', 'pie', Object.values(stats), ['#6366f1', '#8b5cf6', '#ec4899', '#f43f5e'], Object.keys(stats));
-
-    renderTable(Object.keys(auditedData[0]));
+    const stats = auditedData.reduce((acc, r) => { const s = r.STATUS || r.SITUACAO_MATRICULA || "N/A"; acc[s] = (acc[s] || 0) + 1; return acc; }, {});
+    renderChart('chartStatusPie', 'pie', Object.values(stats), ['#6366f1', '#8b5cf6', '#ec4899', '#10b981'], Object.keys(stats));
 }
 
 function renderChart(id, type, data, colors, labels) {
@@ -93,7 +84,7 @@ function renderChart(id, type, data, colors, labels) {
     charts[id] = new Chart(document.getElementById(id), {
         type: type,
         data: { labels: labels, datasets: [{ data: data, backgroundColor: colors, borderWidth: 0 }] },
-        options: { plugins: { legend: { display: type !== 'bar', position: 'bottom', labels: { color: '#94a3b8', font: { size: 10 } } } }, cutout: '70%' }
+        options: { plugins: { legend: { display: type !== 'bar', position: 'bottom', labels: { color: '#94a3b8' } } } }
     });
 }
 
@@ -107,46 +98,30 @@ function applyFilters() {
     const mode = document.getElementById('viewFilter').value;
     const selects = document.querySelectorAll('.filter-select');
     const keys = Object.keys(auditedData[0]).filter(k => !k.startsWith('_'));
-    
     const filtered = auditedData.filter(row => {
         const matchesMode = mode === 'all' ? true : mode === 'diff' ? row._isDiff : !row._isDiff;
         const matchesCols = Array.from(selects).every((sel, i) => sel.value === "" || String(row[keys[i]]) === sel.value);
         return matchesMode && matchesCols;
     });
-
-    document.getElementById('tableBody').innerHTML = filtered.slice(0, 400).map(r => `
+    document.getElementById('tableBody').innerHTML = filtered.slice(0, 300).map(r => `
         <tr class="${r._isDiff ? 'diff-row' : ''}">${keys.map(k => `<td>${r[k] || ''}</td>`).join('')}</tr>
     `).join('');
 }
 
-document.getElementById('btnAi').onclick = async () => {
+async function generateAiReport() {
     const key = document.getElementById('geminiKey').value;
-    if (!key) return alert("Por favor, insira a Gemini API Key.");
-    
     const aiTxt = document.getElementById('aiTxt');
-    const loader = document.getElementById('aiLoader');
-    loader.classList.remove('hidden');
-    switchTab('tab-ai');
+    if (!key) return aiTxt.innerHTML = "Coloque a Gemini Key no topo para gerar o parecer técnico automaticamente.";
+    
+    document.getElementById('aiLoader').classList.remove('hidden');
+    aiTxt.innerHTML = "Processando análise estrutural e técnica...";
 
-    // Validação Estrutural para a IA
-    const f1Cols = storage[0] ? Object.keys(storage[0].rows[0]) : [];
+    const f1Cols = Object.keys(storage[0].rows[0]);
     const f2Cols = storage[1] ? Object.keys(storage[1].rows[0]) : [];
     
-    const prompt = `
-        Aja como um Auditor de Dados. 
-        Estrutura atual:
-        - Arquivo 1 colunas: [${f1Cols.join(', ')}]
-        - Arquivo 2 colunas: [${f2Cols.join(', ')}]
-        - Registros: ${auditedData.length}
-        - Divergências: ${auditedData.filter(r => r._isDiff).length}
-
-        INSTRUÇÕES:
-        1. Se as colunas "ALUNO" ou "NOME_ALUNO" não existirem em ambos, ou se as colunas forem totalmente incompatíveis, PARE a análise e escreva um "GUIA DE CORREÇÃO" para o usuário ajustar o Excel.
-        2. Se os dados forem compatíveis, forneça:
-           - PARECER DAS DIFERENÇAS: O que mudou e por quê.
-           - ANÁLISE DE RELAÇÕES: Como os dados se cruzam.
-           - CONCLUSÃO: Um resumo estratégico sobre a integridade do relatório.
-    `;
+    const prompt = `Analise a auditoria: Arquivo 1 colunas [${f1Cols.join(', ')}]. Arquivo 2 [${f2Cols.join(', ')}]. Divergências encontradas: ${auditedData.filter(r => r._isDiff).length}. 
+    Ação 1: Se as colunas de Nome/Aluno forem incompatíveis, dê um guia de como o usuário deve renomear as colunas no Excel. 
+    Ação 2: Se estiver tudo certo, dê o parecer técnico sobre as diferenças, as relações entre os dados e uma conclusão final.`;
 
     try {
         const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${key}`, {
@@ -154,20 +129,20 @@ document.getElementById('btnAi').onclick = async () => {
         });
         const data = await res.json();
         aiTxt.innerHTML = data.candidates[0].content.parts[0].text.replace(/\n/g, '<br>').replace(/\*\*(.*?)\*\*/g, '<b class="text-white">$1</b>');
-    } catch (e) { aiTxt.innerHTML = "Erro na conexão com a IA. Verifique sua chave."; }
-    finally { loader.classList.add('hidden'); }
-};
+    } catch (e) { aiTxt.innerHTML = "Erro ao conectar com a IA."; }
+    finally { document.getElementById('aiLoader').classList.add('hidden'); }
+}
 
 function exportExcel() {
     const ws = XLSX.utils.json_to_sheet(auditedData);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Auditoria");
-    XLSX.writeFile(wb, "BI_Auditoria_Export.xlsx");
+    XLSX.writeFile(wb, "Auditoria_BI.xlsx");
 }
 
 function exportPDF() {
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF('l', 'mm', 'a4');
     doc.autoTable({ html: '#mainTable', theme: 'grid', styles: { fontSize: 6 } });
-    doc.save("Relatorio_Auditoria.pdf");
+    doc.save("Relatorio_BI.pdf");
 }

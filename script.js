@@ -12,40 +12,25 @@ function switchTab(id) {
 
 document.getElementById('fileInput').addEventListener('change', async (e) => {
     const files = Array.from(e.target.files);
-    if (files.length === 0) return;
+    if (files.length < 2) return alert("Por favor, selecione 2 arquivos para comparar.");
     
     storage = [];
     for (let f of files) {
-        try {
-            const data = await parseFile(f);
-            storage.push({ name: f.name, rows: data });
-        } catch (err) {
-            console.error("Erro ao ler arquivo:", f.name);
-        }
+        const data = await parseFile(f);
+        storage.push({ name: f.name, rows: data });
     }
-
-    if (storage.length >= 2) {
-        processAudit();
-        generateAiReport();
-    } else {
-        alert("Para auditoria cruzada, carregue pelo menos 2 arquivos.");
-    }
+    processAudit();
+    generateAutomaticReport();
 });
 
 async function parseFile(file) {
-    return new Promise((resolve, reject) => {
+    return new Promise(resolve => {
         const reader = new FileReader();
         if (file.name.endsWith('.csv')) {
-            Papa.parse(file, { 
-                header: true, 
-                skipEmptyLines: true,
-                complete: res => resolve(res.data),
-                error: err => reject(err)
-            });
+            Papa.parse(file, { header: true, skipEmptyLines: true, complete: res => resolve(res.data) });
         } else {
             reader.onload = e => {
-                const data = new Uint8Array(e.target.result);
-                const wb = XLSX.read(data, { type: 'array' });
+                const wb = XLSX.read(new Uint8Array(e.target.result), { type: 'array' });
                 resolve(XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]]));
             };
             reader.readAsArrayBuffer(file);
@@ -55,56 +40,46 @@ async function parseFile(file) {
 
 function findCol(row, keywords) {
     if (!row) return null;
-    const keys = Object.keys(row);
-    return keys.find(k => keywords.some(kw => k.toUpperCase().includes(kw.toUpperCase()))) || null;
+    return Object.keys(row).find(k => keywords.some(kw => k.toUpperCase().includes(kw.toUpperCase()))) || null;
 }
 
 function processAudit() {
     const base = storage[0].rows;
     const comp = storage[1].rows;
-    let dCount = 0;
 
-    const colIdBase = findCol(base[0], ["ALUNO", "NOME", "CD_ALUNO", "NOME_ALUNO"]);
-    const colStatusBase = findCol(base[0], ["STATUS", "SITUACAO", "SITUACAO_MATRICULA"]);
-    const colCidadeBase = findCol(base[0], ["CIDADE", "MUNICIPIO"]);
-
-    const colIdComp = findCol(comp[0], ["ALUNO", "NOME", "CD_ALUNO"]);
-    const colStatusComp = findCol(comp[0], ["STATUS", "SITUACAO"]);
+    const colIdBase = findCol(base[0], ["ALUNO", "NOME", "MATRICULA", "ID"]);
+    const colStatusBase = findCol(base[0], ["STATUS", "SITUACAO", "RESULTADO"]);
+    const colIdComp = findCol(comp[0], ["ALUNO", "NOME", "MATRICULA", "ID"]);
+    const colStatusComp = findCol(comp[0], ["STATUS", "SITUACAO", "RESULTADO"]);
+    const colCidade = findCol(base[0], ["CIDADE", "MUNICIPIO"]);
 
     auditedData = base.map(row => {
-        let isDiff = false;
-        const idValue = String(row[colIdBase] || "").trim().toLowerCase();
+        const valBase = String(row[colIdBase] || "").trim().toLowerCase();
+        const statusBase = String(row[colStatusBase] || "").trim().toLowerCase();
+        const match = comp.find(r => String(r[colIdComp] || "").trim().toLowerCase() === valBase);
         
-        const match = comp.find(r => String(r[colIdComp] || "").trim().toLowerCase() === idValue);
-        
-        if (!match) {
-            isDiff = true; // Não encontrado no segundo arquivo
-        } else {
-            const s1 = String(row[colStatusBase] || "").trim();
-            const s2 = String(match[colStatusComp] || "").trim();
-            if (s1 !== s2) isDiff = true; // Status diferente
+        let statusAudit = "nao_encontrado";
+        if (match) {
+            const statusComp = String(match[colStatusComp] || "").trim().toLowerCase();
+            statusAudit = (statusBase === statusComp) ? "identico" : "divergente";
         }
-
-        if (isDiff) dCount++;
-        return { ...row, _isDiff: isDiff };
+        return { ...row, _statusAudit: statusAudit };
     });
 
-    updateUI(dCount, colCidadeBase);
+    updateUI(colCidade);
 }
 
-function updateUI(dCount, colCidade) {
-    document.getElementById('kpiRows').innerText = auditedData.length;
-    document.getElementById('kpiDiffs').innerText = dCount;
-    document.getElementById('kpiEquals').innerText = auditedData.length - dCount;
+function updateUI(colCidade) {
+    const diffs = auditedData.filter(r => r._statusAudit === 'divergente').length;
+    const equals = auditedData.filter(r => r._statusAudit === 'identico').length;
 
-    renderChart('chartStatus', 'doughnut', [dCount, auditedData.length - dCount], ['#f59e0b', '#10b981'], ['Divergente', 'Ok']);
+    document.getElementById('kpiRows').innerText = auditedData.length;
+    document.getElementById('kpiDiffs').innerText = diffs;
+    document.getElementById('kpiEquals').innerText = equals;
+
+    renderChart('chartStatus', 'doughnut', [diffs, equals], ['#f59e0b', '#10b981'], ['Divergente', 'Identico']);
     
-    const cityData = auditedData.reduce((acc, r) => { 
-        const c = r[colCidade] || "Não Informado"; 
-        acc[c] = (acc[c] || 0) + 1; 
-        return acc; 
-    }, {});
-    
+    const cityData = auditedData.reduce((acc, r) => { const c = r[colCidade] || "N/A"; acc[c] = (acc[c] || 0) + 1; return acc; }, {});
     const topCities = Object.entries(cityData).sort((a,b) => b[1] - a[1]).slice(0, 5);
     renderChart('chartCities', 'bar', topCities.map(c => c[1]), ['#3b82f6'], topCities.map(c => c[0]));
 
@@ -116,88 +91,56 @@ function renderChart(id, type, data, colors, labels) {
     charts[id] = new Chart(document.getElementById(id), {
         type: type,
         data: { labels: labels, datasets: [{ data: data, backgroundColor: colors, borderWidth: 0 }] },
-        options: { 
-            responsive: true, 
-            maintainAspectRatio: false,
-            plugins: { legend: { position: 'bottom', labels: { color: '#94a3b8', font: { size: 10 } } } } 
-        }
+        options: { plugins: { legend: { position: 'bottom', labels: { color: '#94a3b8', font: { size: 9 } } } } }
     });
 }
 
 function renderTable() {
-    const firstRow = auditedData[0] || {};
-    const keys = Object.keys(firstRow).filter(k => !k.startsWith('_'));
-    document.getElementById('tableHeader').innerHTML = `<tr>${keys.map(k => `<th>${k}</th>`).join('')}</tr>`;
-    applyFilters();
-}
-
-function applyFilters() {
     const mode = document.getElementById('viewFilter').value;
-    const firstRow = auditedData[0] || {};
-    const keys = Object.keys(firstRow).filter(k => !k.startsWith('_'));
-    const filtered = auditedData.filter(r => mode === 'all' ? true : r._isDiff);
+    const keys = Object.keys(auditedData[0] || {}).filter(k => !k.startsWith('_'));
+    document.getElementById('tableHeader').innerHTML = `<tr>${keys.map(k => `<th>${k}</th>`).join('')}</tr>`;
     
-    document.getElementById('tableBody').innerHTML = filtered.slice(0, 500).map(r => `
-        <tr class="${r._isDiff ? 'diff-row' : ''}">
-            ${keys.map(k => `<td>${r[k] !== undefined ? r[k] : ''}</td>`).join('')}
+    const filtered = auditedData.filter(r => {
+        if (mode === 'all') return true;
+        if (mode === 'diff') return r._statusAudit === 'divergente';
+        if (mode === 'equal') return r._statusAudit === 'identico';
+        return true;
+    });
+
+    document.getElementById('tableBody').innerHTML = filtered.slice(0, 300).map(r => `
+        <tr class="${r._statusAudit === 'divergente' ? 'diff-row' : ''} ${r._statusAudit === 'identico' ? 'equal-row' : ''}">
+            ${keys.map(k => `<td>${r[k] || ''}</td>`).join('')}
         </tr>
     `).join('');
 }
 
-async function generateAiReport() {
-    const key = document.getElementById('geminiKey').value;
+function generateAutomaticReport() {
     const aiTxt = document.getElementById('aiTxt');
-    if (!key) {
-        aiTxt.innerHTML = "<i>Análise IA desativada. Insira a Chave Gemini no topo para obter um parecer técnico.</i>";
-        return;
-    }
+    const total = auditedData.length;
+    const diffs = auditedData.filter(r => r._statusAudit === 'divergente').length;
+    const equals = auditedData.filter(r => r._statusAudit === 'identico').length;
+    const perc = ((equals/total)*100).toFixed(1);
 
-    document.getElementById('aiLoader').classList.remove('hidden');
-    aiTxt.innerHTML = "Cruzando dados e gerando insights...";
-
-    const resumo = {
-        total: auditedData.length,
-        erros: auditedData.filter(r => r._isDiff).length,
-        amostra: auditedData.filter(r => r._isDiff).slice(0, 3)
-    };
-
-    try {
-        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${key}`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                contents: [{ parts: [{ text: `Aja como um auditor de dados profissional. Analise este resumo de BI: ${JSON.stringify(resumo)}. Escreva um parecer curto e objetivo sobre a saúde desses dados e o que deve ser corrigido prioritariamente. Use HTML simples para formatar (<b>, <br>).` }] }]
-            })
-        });
-        const data = await response.json();
-        aiTxt.innerHTML = data.candidates[0].content.parts[0].text;
-    } catch (e) {
-        aiTxt.innerHTML = "Erro ao conectar com a IA. Verifique sua chave.";
-    } finally {
-        document.getElementById('aiLoader').classList.add('hidden');
-    }
+    aiTxt.innerHTML = `
+        <div class='space-y-4'>
+            <h3 class='text-white font-bold'>Análise de Integridade de Dados</h3>
+            <p>Concluímos o cruzamento entre <b>${storage[0].name}</b> e <b>${storage[1].name}</b>.</p>
+            <p>O sistema detectou que <b>${perc}%</b> dos dados estão em total conformidade (Idênticos). Entretanto, foram localizadas <b>${diffs} divergências</b> que necessitam de conferência manual.</p>
+            <p><b>Ação recomendada:</b> Acesse a aba 'Dados & Filtros' e selecione 'Apenas Divergências' para exportar a lista de correção.</p>
+        </div>
+    `;
 }
 
 function exportExcel() {
-    const exportData = auditedData.map(r => {
-        const { _isDiff, ...rest } = r;
-        return { ...rest, STATUS_AUDITORIA: _isDiff ? 'DIVERGENTE' : 'OK' };
-    });
-    const ws = XLSX.utils.json_to_sheet(exportData);
+    const ws = XLSX.utils.json_to_sheet(auditedData);
     const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "Relatorio");
-    XLSX.writeFile(wb, "Auditoria_Enterprise_AI.xlsx");
+    XLSX.utils.book_append_sheet(wb, ws, "Auditoria");
+    XLSX.writeFile(wb, "BI_Auditoria_Resultado.xlsx");
 }
 
 function exportPDF() {
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF('l', 'mm', 'a4');
-    doc.text("Relatório de Auditoria BI Enterprise AI", 14, 15);
-    doc.autoTable({ 
-        html: '#mainTable', 
-        startY: 20,
-        styles: { fontSize: 7, cellPadding: 2 },
-        headStyles: { fillColor: [30, 41, 59] }
-    });
-    doc.save("Auditoria.pdf");
+    doc.autoTable({ html: '#mainTable', theme: 'grid', styles: { fontSize: 6 } });
+    doc.save("Relatorio_Auditoria.pdf");
 }

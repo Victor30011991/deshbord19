@@ -1,8 +1,8 @@
-let uploadedFiles = [];
-let allResults = []; 
-let chartD, chartC;
-
 document.addEventListener('DOMContentLoaded', () => {
+    let uploadedFiles = [];
+    let allResults = []; 
+    let chartD, chartC;
+
     const fileInput = document.getElementById('fileInput');
     const tableSearch = document.getElementById('tableSearch');
     const filterStatus = document.getElementById('filterStatus');
@@ -43,6 +43,7 @@ document.addEventListener('DOMContentLoaded', () => {
             let diffObj = { "_id": i + 1, "_hasDiff": false };
             
             keys.forEach(k => {
+                // Comparação rigorosa para detetar divergências
                 if (uploadedFiles.length > 1 && String(row[k]) !== String(row2[k])) {
                     diffObj["_hasDiff"] = true;
                     diffObj[k] = `${row[k] || 'Ø'} ⮕ ${row2[k] || 'Ø'}`;
@@ -66,7 +67,7 @@ document.addEventListener('DOMContentLoaded', () => {
             return matchesSearch && matchesStatus;
         });
 
-        // Atualização de KPIs
+        // ATUALIZAÇÃO DOS NÚMEROS (KPIs)
         const totalRows = allResults.length;
         const diffCount = allResults.filter(r => r._hasDiff).length;
         const accuracy = totalRows > 0 ? (((totalRows - diffCount) / totalRows) * 100).toFixed(1) : 0;
@@ -77,18 +78,18 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('totalCols').innerText = keys.length;
         document.getElementById('diffCounter').innerText = `${diffCount} Divergências`;
 
-        // Renderização da Tabela
         document.getElementById('tableHeader').innerHTML = `<tr><th>REF</th>${keys.map(k => `<th>${k}</th>`).join('')}</tr>`;
         document.getElementById('tableBody').innerHTML = filtered.slice(0, 100).map(d => `
             <tr class="${d._hasDiff ? 'diff-row' : ''}">
                 <td class="opacity-30 font-mono text-[9px]">${d._id}</td>
                 ${keys.map(k => {
                     const isDiff = String(d[k]).includes('⮕');
-                    return `<td class="${isDiff ? 'text-yellow-500 font-bold' : ''}" title="${d[k]}">${d[k]}</td>`;
+                    return `<td class="${isDiff ? 'text-yellow-500 font-bold' : ''}">${d[k]}</td>`;
                 }).join('')}
             </tr>
         `).join('');
 
+        // MOSTRAR BOTÕES DE EXPORTAÇÃO SE HOUVER DADOS
         if(uploadedFiles.length > 0) {
             document.getElementById('exportGroup').classList.remove('hidden');
             updatePieChart(diffCount, totalRows);
@@ -101,7 +102,7 @@ document.addEventListener('DOMContentLoaded', () => {
         chartD = new Chart(ctx, {
             type: 'doughnut',
             data: {
-                labels: ['Erros', 'Ok'],
+                labels: ['Divergências', 'Iguais'],
                 datasets: [{ data: [diffs, total - diffs], backgroundColor: ['#f59e0b', '#10b981'], borderWidth: 0 }]
             },
             options: { cutout: '80%', plugins: { legend: { display: false } } }
@@ -129,38 +130,26 @@ document.addEventListener('DOMContentLoaded', () => {
     tableSearch.addEventListener('input', renderUI);
     filterStatus.addEventListener('change', renderUI);
     document.getElementById('btnClear').onclick = () => location.reload();
+
+    // FUNÇÕES DE EXPORTAÇÃO TORNADAS GLOBAIS
+    window.exportExcel = function() {
+        const ws = XLSX.utils.json_to_sheet(allResults.map(({_hasDiff, ...rest}) => rest));
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, "Auditoria");
+        XLSX.writeFile(wb, "BI_Analytics_Export.xlsx");
+    };
+
+    window.exportPDF = function() {
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF('l', 'mm', 'a4');
+        const keys = Object.keys(uploadedFiles[0].data[0] || {});
+        doc.text("Relatório de Auditoria BI", 14, 15);
+        doc.autoTable({
+            startY: 20,
+            head: [['REF', ...keys]],
+            body: allResults.map(r => [r._id, ...keys.map(k => r[k])]),
+            styles: { fontSize: 7 }
+        });
+        doc.save("Relatorio_BI.pdf");
+    };
 });
-
-// Funções Globais de Exportação
-function exportExcel() {
-    const filter = document.getElementById('filterStatus').value;
-    const dataToExport = filter === 'diff' ? allResults.filter(r => r._hasDiff) : allResults;
-    const cleanData = dataToExport.map(({_hasDiff, ...rest}) => rest);
-    const ws = XLSX.utils.json_to_sheet(cleanData);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "Auditoria");
-    XLSX.writeFile(wb, `Auditoria_BI_${filter}.xlsx`);
-}
-
-function exportPDF() {
-    const { jsPDF } = window.jspdf;
-    const doc = new jsPDF('l', 'mm', 'a4');
-    const filter = document.getElementById('filterStatus').value;
-    const dataToExport = filter === 'diff' ? allResults.filter(r => r._hasDiff) : allResults;
-    const keys = Object.keys(uploadedFiles[0].data[0] || {});
-
-    doc.text("Relatório de Divergências", 14, 15);
-    doc.autoTable({
-        startY: 20,
-        head: [['REF', ...keys]],
-        body: dataToExport.map(r => [r._id, ...keys.map(k => r[k])]),
-        styles: { fontSize: 7 },
-        headStyles: { fillColor: [15, 23, 42] },
-        didParseCell: function(data) {
-            if (data.section === 'body' && String(data.cell.raw).includes('⮕')) {
-                data.cell.styles.textColor = [245, 158, 11];
-            }
-        }
-    });
-    doc.save("Relatorio_BI.pdf");
-}

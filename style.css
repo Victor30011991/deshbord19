@@ -3,7 +3,6 @@
 * { box-sizing: border-box; margin: 0; padding: 0; }
 body { font-family: 'Inter', sans-serif; letter-spacing: -0.01em; }
 
-/* Tabela Otimizada */
 table { width: 100%; border-spacing: 0; border-collapse: collapse; }
 th { 
     position: sticky; top: 0; background: #161c2d; 
@@ -20,7 +19,6 @@ td {
 tr:hover td { background: rgba(59, 130, 246, 0.05); color: #fff; }
 .diff-row { background: rgba(245, 158, 11, 0.03); }
 
-/* Scrollbar */
 ::-webkit-scrollbar { width: 4px; height: 4px; }
 ::-webkit-scrollbar-thumb { background: #1e293b; border-radius: 10px; }
 ::-webkit-scrollbar-thumb:hover { background: #3b82f6; }

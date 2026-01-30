@@ -73,8 +73,7 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('diffCounter').innerText = d.toLocaleString();
 
         document.getElementById('tableHeader').innerHTML = `<tr><th>REF</th>${keys.map(k => `<th>${k}</th>`).join('')}</tr>`;
-        // Exibe as primeiras 200 linhas para manter a performance da barra de rolagem
-        document.getElementById('tableBody').innerHTML = filtered.slice(0, 200).map(r => `
+        document.getElementById('tableBody').innerHTML = filtered.slice(0, 300).map(r => `
             <tr class="${r._diff ? 'diff-row' : ''}">
                 <td class="opacity-30 font-mono text-[9px]">${r._id}</td>
                 ${keys.map(k => `<td class="${String(r[k]).includes('⮕') ? 'text-yellow-500' : ''}">${r[k]}</td>`).join('')}
@@ -85,48 +84,55 @@ document.addEventListener('DOMContentLoaded', () => {
         updateCharts(d, t);
     }
 
+    // DOWNLOAD EXCEL
+    window.exportExcel = () => {
+        const dataToExport = allResults.map(({_id, _diff, _rel, ...rest}) => rest);
+        const ws = XLSX.utils.json_to_sheet(dataToExport);
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, "Auditoria");
+        XLSX.writeFile(wb, "Relatorio_BI_Enterprise.xlsx");
+    };
+
+    // DOWNLOAD PDF
+    window.exportPDF = () => {
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF('l', 'mm', 'a4');
+        const dataToExport = allResults.map(r => Object.values(r).slice(3));
+        const headers = [Object.keys(allResults[0]).slice(3)];
+        doc.autoTable({
+            head: headers,
+            body: dataToExport,
+            startY: 20,
+            theme: 'grid',
+            styles: { fontSize: 7 }
+        });
+        doc.save("Relatorio_Auditoria.pdf");
+    };
+
     function updateCharts(d, t) {
         if(chartD) chartD.destroy();
         chartD = new Chart(document.getElementById('chartDiff'), {
             type: 'doughnut',
-            data: { 
-                labels: ['Divergentes', 'Conformes'],
-                datasets: [{ data: [d, t-d], backgroundColor: ['#f59e0b', '#10b981'], borderWidth: 0 }] 
-            },
-            options: { cutout: '80%', plugins: { legend: { display: false } } }
+            data: { datasets: [{ data: [d, t-d], backgroundColor: ['#f59e0b', '#10b981'], borderWidth: 0 }] },
+            options: { cutout: '80%' }
         });
     }
 
     function updateColumnChart(col) {
         const counts = {};
-        uploadedFiles[0].data.forEach(r => { let v = r[col] || 'Vazio'; counts[v] = (counts[v] || 0) + 1; });
+        uploadedFiles[0].data.forEach(r => { let v = r[col] || 'Ø'; counts[v] = (counts[v] || 0) + 1; });
         const sorted = Object.entries(counts).sort((a,b) => b[1]-a[1]).slice(0,10);
-        
         if(chartC) chartC.destroy();
         chartC = new Chart(document.getElementById('chartColumns'), {
             type: 'bar',
-            data: { 
-                labels: sorted.map(i => i[0]), 
-                datasets: [{ data: sorted.map(i => i[1]), backgroundColor: '#3b82f6', borderRadius: 4 }] 
-            },
-            options: { 
-                indexAxis: 'y', // GRÁFICO HORIZONTAL PARA EVITAR DISTORÇÃO
-                responsive: true, 
-                maintainAspectRatio: false,
-                plugins: { legend: { display: false } },
-                scales: { 
-                    x: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#475569' } },
-                    y: { ticks: { color: '#94a3b8', font: { size: 10 } } }
-                }
-            }
+            data: { labels: sorted.map(i=>i[0]), datasets: [{ data: sorted.map(i=>i[1]), backgroundColor: '#3b82f6' }] },
+            options: { indexAxis: 'y', plugins: { legend: { display: false } } }
         });
     }
 
     tableSearch.oninput = render;
     filterStatus.onchange = render;
     cleanToggle.onchange = processComparison;
+    document.getElementById('btnExcel').onclick = exportExcel;
+    document.getElementById('btnPDF').onclick = exportPDF;
 });
-
-// Funções de Exportação Exemplo
-window.exportExcel = () => { /* Lógica de download XLSX */ alert('Gerando Excel...'); };
-window.exportPDF = () => { /* Lógica de download PDF */ alert('Gerando PDF...'); };

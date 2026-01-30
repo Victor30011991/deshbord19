@@ -2,52 +2,53 @@
 <html lang="pt-br">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>BI Enterprise AI - Performance Auditor V3</title>
+    <title>Enterprise AI - Auditoria Master V4</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <link rel="stylesheet" href="style.css">
 </head>
 <body class="bg-[#0b0f1a] text-slate-300 h-screen flex flex-col overflow-hidden font-sans">
 
     <header class="h-16 border-b border-white/5 bg-[#0f172a] flex items-center justify-between px-6 shrink-0 z-50">
         <div class="flex items-center gap-3">
-            <div class="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center text-white font-black shadow-lg shadow-blue-500/20">AI</div>
+            <div class="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center text-white font-black">AI</div>
             <h1 class="text-white font-bold text-xs uppercase tracking-widest">Enterprise Auditor</h1>
         </div>
         <nav class="flex bg-black/30 p-1 rounded-xl border border-white/5">
             <button onclick="switchTab('tab-diag')" class="nav-link" id="btn-diag">DIAGNÓSTICO</button>
-            <button onclick="switchTab('tab-conf')" class="nav-link active" id="btn-conf">CONFERÊNCIA (TRIPLE)</button>
+            <button onclick="switchTab('tab-acerto')" class="nav-link" id="btn-acerto">ACERTOS</button>
+            <button onclick="switchTab('tab-conf')" class="nav-link active" id="btn-conf">CONFERÊNCIA</button>
             <button onclick="switchTab('tab-dash')" class="nav-link" id="btn-dash">DASHBOARD</button>
         </nav>
-        <div class="flex items-center gap-3">
+        <div class="flex items-center gap-2">
+            <button onclick="exportToExcel()" id="btnExport" class="hidden bg-emerald-600 hover:bg-emerald-500 text-white text-[10px] font-black px-4 py-2 rounded-lg uppercase transition-all">Baixar Auditoria</button>
             <input type="file" id="fileInput" class="hidden" multiple>
-            <label for="fileInput" class="bg-blue-600 hover:bg-blue-500 text-white text-[10px] font-black px-4 py-2 rounded-lg cursor-pointer uppercase transition-all shadow-lg shadow-blue-600/20">Upload Bases</label>
+            <label for="fileInput" class="bg-blue-600 hover:bg-blue-500 text-white text-[10px] font-black px-4 py-2 rounded-lg cursor-pointer uppercase transition-all">Upload Bases</label>
         </div>
     </header>
 
     <main class="flex-1 relative overflow-hidden bg-[#080b14]">
-        <section id="tab-diag" class="tab-content p-8 overflow-y-auto">
-            <div id="diag-container" class="max-w-4xl mx-auto">
-                <div class="bg-[#0f172a] border border-white/5 rounded-3xl p-12 text-center opacity-50">
-                    <h2 class="text-white font-bold">Aguardando Processamento</h2>
-                    <p class="text-sm">Suba os arquivos para ver o diagnóstico de colunas.</p>
-                </div>
+        <section id="tab-diag" class="tab-content p-6 overflow-y-auto">
+            <div id="diag-container" class="max-w-4xl mx-auto grid gap-4">
+                <div class="bg-[#0f172a] border border-white/5 rounded-2xl p-10 text-center opacity-50">Suba as bases para iniciar o diagnóstico automático.</div>
             </div>
         </section>
 
+        <section id="tab-acerto" class="tab-content p-6 overflow-y-auto">
+            <div id="acerto-list" class="max-w-3xl mx-auto space-y-3"></div>
+        </section>
+
         <section id="tab-conf" class="tab-content active p-4 h-full flex flex-col gap-4">
-            <div class="flex justify-between items-center bg-[#0f172a] p-3 rounded-xl border border-white/5 shadow-2xl">
+            <div class="flex justify-between items-center bg-[#0f172a] p-3 rounded-xl border border-white/5">
                 <div class="flex gap-2">
                     <button onclick="applyFilter('todos')" class="f-btn active" id="f-todos">Todos</button>
-                    <button onclick="applyFilter('relacionado')" class="f-btn border-emerald-500/30 text-emerald-400" id="f-rel">Relacionados</button>
-                    <button onclick="applyFilter('divergente')" class="f-btn border-orange-500/30 text-orange-400" id="f-div">Divergentes</button>
-                    <button onclick="applyFilter('ausente')" class="f-btn border-slate-500/30 text-slate-400" id="f-aus">Não Vinculados</button>
+                    <button onclick="applyFilter('relacionado')" class="f-btn text-emerald-400" id="f-rel">Relacionados</button>
+                    <button onclick="applyFilter('divergente')" class="f-btn text-orange-400" id="f-div">Divergentes</button>
+                    <button onclick="applyFilter('ausente')" class="f-btn text-slate-400" id="f-aus">Não Vinculados</button>
                 </div>
-                <div class="relative">
-                    <input type="text" id="tableSearch" placeholder="Busca instantânea em 13k registros..." class="bg-black/30 border border-white/10 rounded-lg px-4 py-1.5 text-xs text-white focus:border-blue-500 w-80 outline-none transition-all">
-                </div>
+                <input type="text" id="tableSearch" placeholder="Pesquisar em todas as colunas..." class="bg-black/30 border border-white/10 rounded-lg px-4 py-1.5 text-xs text-white focus:border-blue-500 w-80 outline-none">
             </div>
 
             <div class="flex-1 grid grid-cols-3 gap-3 overflow-hidden">
@@ -60,16 +61,15 @@
                     <div class="overflow-auto flex-1 custom-scrollbar"><table id="tableB" class="w-full text-[10px]"></table></div>
                 </div>
                 <div class="panel border-blue-500/20 shadow-lg shadow-blue-500/5">
-                    <div class="panel-header text-blue-400">Veredito Auditoria</div>
+                    <div class="panel-header text-blue-400">Veredito da Auditoria</div>
                     <div class="overflow-auto flex-1 custom-scrollbar"><table id="tableRes" class="w-full text-[10px]"></table></div>
                 </div>
             </div>
-            <div id="pagination-info" class="text-[9px] text-slate-500 font-bold uppercase py-1 text-right tracking-widest">Otimizado: Mostrando top 100 resultados</div>
         </section>
 
         <section id="tab-dash" class="tab-content p-6 overflow-y-auto">
-            <div class="max-w-7xl mx-auto grid grid-cols-4 gap-4 mb-6" id="kpi-grid"></div>
-            <div class="max-w-7xl mx-auto grid grid-cols-2 gap-6 h-[400px]">
+            <div class="grid grid-cols-4 gap-4 mb-6" id="kpi-grid"></div>
+            <div class="grid grid-cols-2 gap-6 h-[450px]">
                 <div class="bg-[#0f172a] p-6 rounded-2xl border border-white/5 shadow-xl"><canvas id="chartStatus"></canvas></div>
                 <div class="bg-[#0f172a] p-6 rounded-2xl border border-white/5 shadow-xl"><canvas id="chartCities"></canvas></div>
             </div>

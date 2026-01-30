@@ -1,7 +1,10 @@
-/* Importação da fonte Inter para um aspeto moderno e limpo */
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
+/* =========================================
+   BI.ENTERPRISE - CSS CORE (ULTRA-DENSITY)
+   ========================================= */
 
-/* Reset e Estrutura Base */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=JetBrains+Mono:wght@500&display=swap');
+
+/* 1. Reset & Estrutura Base */
 * { 
     box-sizing: border-box; 
     margin: 0; 
@@ -10,64 +13,94 @@
 
 body { 
     font-family: 'Inter', sans-serif; 
-    background-color: #0b0f1a; /* Fundo ultra-dark */
+    background-color: #0b0f1a; 
     color: #94a3b8;
     height: 100vh;
     display: flex;
     flex-direction: column;
-    overflow: hidden;
+    overflow: hidden; /* Impede scroll no body, foca nos containers */
 }
 
-/* Header e Navegação Superior */
+/* 2. Header & Top Bar */
 header {
     background: #0f172a;
     border-bottom: 1px solid rgba(255, 255, 255, 0.05);
     flex-shrink: 0;
+    z-index: 50;
 }
 
-/* Grid de KPIs (Os 4 quadros superiores) */
-.grid > div {
-    background: rgba(15, 23, 42, 0.3);
-    border: 1px solid rgba(255, 255, 255, 0.05);
-    border-radius: 4px;
-    padding: 12px;
-    transition: all 0.2s ease;
-}
-
-.grid > div:hover {
-    border-color: rgba(59, 130, 246, 0.3);
+/* 3. Sidebar de Análise (Fixa e Scrollável) */
+aside {
     background: rgba(15, 23, 42, 0.5);
+    border-right: 1px solid rgba(255, 255, 255, 0.05);
+    overflow-y: auto; /* Permite scroll se os gráficos forem muitos */
 }
 
-h2 {
-    font-family: 'JetBrains Mono', monospace;
-    font-weight: 600;
+/* Ajuste para Gráficos Horizontais */
+canvas {
+    max-width: 100% !important;
+    max-height: 100% !important;
 }
 
-/* Barra de Status da Tabela (Onde ficam os contadores que sumiram) */
-.toolbar-counters {
+/* 4. Grid de KPIs Empresariais */
+.kpi-card {
     background: rgba(15, 23, 42, 0.4);
+    padding: 15px;
+    border-radius: 4px;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
 }
 
-#equalCounter, #diffCounter {
+.kpi-label {
+    text-transform: uppercase;
+    font-size: 9px;
     font-weight: 700;
-    font-family: 'JetBrains Mono', monospace;
+    color: #64748b;
+    letter-spacing: 0.05em;
+    margin-bottom: 4px;
 }
 
-/* Tabela de Alta Densidade */
-.table-wrapper {
+.kpi-value {
+    font-size: 20px;
+    font-family: 'JetBrains Mono', monospace;
+    font-weight: 500;
+}
+
+/* 5. Toolbar & Filtros */
+.toolbar-enterprise {
+    background: rgba(15, 23, 42, 0.3);
+    min-height: 40px;
+}
+
+.search-input {
+    background: transparent;
+    border: none;
+    outline: none;
+    color: #fff;
+    font-size: 11px;
+    width: 300px;
+}
+
+.search-input::placeholder {
+    color: #334155;
+}
+
+/* 6. Tabela de Alta Performance (4000+ linhas) */
+.table-container {
     flex: 1;
     overflow: auto;
-    background: #0b0f1a;
+    position: relative;
 }
 
 table {
     width: 100%;
     border-collapse: collapse;
     font-size: 11px;
+    table-layout: auto; /* Auto para se adaptar a colunas variadas */
 }
 
-/* Cabeçalho Fixo (Sticky Header) */
 th {
     position: sticky;
     top: 0;
@@ -80,50 +113,37 @@ th {
     text-align: left;
     z-index: 20;
     border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    white-space: nowrap;
 }
 
-/* Estilização das Células e Divergências */
 td {
     padding: 8px 10px;
     border-bottom: 1px solid rgba(255, 255, 255, 0.02);
     white-space: nowrap;
-    max-width: 250px;
+    max-width: 300px;
     overflow: hidden;
     text-overflow: ellipsis;
 }
 
-/* Linha com Divergência (Fundo Laranja Sutil) */
+/* 7. Estados de Divergência e Hover */
 .diff-row {
-    background: rgba(245, 158, 11, 0.04); 
+    background: rgba(245, 158, 11, 0.03); /* Laranja sutil para a linha toda */
 }
 
-/* Cor Amarela Vibrante para as setas ⮕ */
-.text-yellow-500 {
-    color: #f59e0b !important;
-    font-weight: 600;
-}
-
-/* Hover na Linha */
 tr:hover td {
     background: rgba(59, 130, 246, 0.05);
     color: #fff;
 }
 
-/* Sidebar e Área de Gráficos */
-aside {
-    background: rgba(15, 23, 42, 0.5);
-    border-right: 1px solid rgba(255, 255, 255, 0.05);
+.text-yellow-500 {
+    color: #f59e0b !important;
+    font-weight: 600;
 }
 
-canvas {
-    max-width: 100% !important;
-    filter: drop-shadow(0 4px 6px rgba(0,0,0,0.1));
-}
-
-/* Barra de Rolagem Customizada (Scrollbar) */
+/* 8. Scrollbar Customizada (Estilo Dark) */
 ::-webkit-scrollbar {
-    width: 4px;
-    height: 4px;
+    width: 6px;
+    height: 6px;
 }
 
 ::-webkit-scrollbar-track {
@@ -139,11 +159,12 @@ canvas {
     background: #3b82f6;
 }
 
-/* Efeito de destaque para os números de orientação */
-#diffCounter {
-    text-shadow: 0 0 8px rgba(245, 158, 11, 0.2);
+/* 9. Elementos de UI Extras */
+select {
+    cursor: pointer;
+    transition: all 0.2s ease;
 }
 
-#equalCounter {
-    text-shadow: 0 0 8px rgba(16, 185, 129, 0.2);
+button:active {
+    transform: scale(0.98);
 }

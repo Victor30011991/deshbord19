@@ -1,18 +1,48 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700&family=JetBrains+Mono&display=swap');
-* { box-sizing: border-box; margin: 0; padding: 0; }
-body { font-family: 'Inter', sans-serif; overflow: hidden; }
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&family=JetBrains+Mono&display=swap');
 
-.tab-content { display: none; height: 100%; position: absolute; width: 100%; }
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body { 
+    font-family: 'Inter', sans-serif; 
+    overflow: hidden; 
+    background-color: #0b0f1a;
+}
+
+/* Tabs */
+.tab-content { display: none; height: 100%; position: absolute; width: 100%; animation: fadeIn 0.3s ease-in-out; }
 .tab-content.active { display: block; }
 
-.tab-btn { padding: 8px 18px; font-size: 10px; font-weight: 800; color: #64748b; border-radius: 5px; transition: 0.2s; }
-.tab-btn.active { color: #3b82f6; background: rgba(59, 130, 246, 0.1); border: 1px solid rgba(59, 130, 246, 0.2); }
+.tab-btn { padding: 8px 18px; font-size: 10px; font-weight: 800; color: #64748b; border-radius: 5px; transition: all 0.2s; border: 1px solid transparent; }
+.tab-btn.active { color: #3b82f6; background: rgba(59, 130, 246, 0.1); border-color: rgba(59, 130, 246, 0.3); }
+.tab-btn:hover:not(.active) { color: #94a3b8; background: rgba(255,255,255,0.05); }
 
-.kpi-card { background: rgba(15, 23, 42, 0.7); padding: 25px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.05); text-align: center; }
-.kpi-label { font-size: 9px; font-weight: 800; text-transform: uppercase; margin-bottom: 10px; }
-.kpi-value { font-family: 'JetBrains Mono'; font-size: 32px; font-weight: 700; }
+/* KPI Cards */
+.kpi-card { 
+    background: rgba(15, 23, 42, 0.6); 
+    padding: 20px; 
+    border-radius: 12px; 
+    border: 1px solid rgba(255,255,255,0.05); 
+    box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+    transition: transform 0.2s;
+}
+.kpi-card:hover { transform: translateY(-3px); border-color: rgba(255,255,255,0.1); }
+.kpi-label { font-size: 9px; font-weight: 800; text-transform: uppercase; margin-bottom: 12px; color: #94a3b8; letter-spacing: 0.5px; }
 
-table { width: 100%; border-collapse: collapse; font-size: 11px; }
-th { background: #1e293b; padding: 12px; position: sticky; top: 0; z-index: 10; color: white; text-align: left; }
-td { padding: 10px; border-bottom: 1px solid rgba(255,255,255,0.05); }
-.diff-row { background: rgba(245, 158, 11, 0.1) !important; color: #f59e0b !important; font-weight: bold; }
+/* Table */
+.table-container { scrollbar-width: thin; scrollbar-color: #1e293b transparent; }
+table { width: 100%; border-collapse: separate; border-spacing: 0; font-size: 11px; }
+th { background: #1e293b; padding: 12px; position: sticky; top: 0; z-index: 10; color: white; text-align: left; font-weight: 600; border-bottom: 2px solid rgba(255,255,255,0.05); }
+td { padding: 10px; border-bottom: 1px solid rgba(255,255,255,0.03); color: #94a3b8; }
+tr:hover td { background: rgba(255,255,255,0.02); color: white; }
+
+.diff-row td { background: rgba(245, 158, 11, 0.08) !important; color: #fbbf24 !important; font-weight: 600; }
+
+/* Custom Scrollbar */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-thumb { background: #1e293b; border-radius: 10px; }
+::-webkit-scrollbar-track { background: transparent; }
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(5px); }
+    to { opacity: 1; transform: translateY(0); }
+}

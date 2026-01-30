@@ -2,6 +2,7 @@
 <html lang="pt-br">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>BI.Enterprise AI - Automação Total</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -20,7 +21,7 @@
                 <span class="font-bold text-sm tracking-tighter">ENTERPRISE AI</span>
             </div>
             <input type="file" id="fileInput" class="hidden" multiple>
-            <label for="fileInput" class="bg-blue-600 hover:bg-blue-500 text-white text-[10px] font-bold px-4 py-2 rounded cursor-pointer uppercase">Carregar Arquivos</label>
+            <label for="fileInput" class="bg-blue-600 hover:bg-blue-500 text-white text-[10px] font-bold px-4 py-2 rounded cursor-pointer uppercase transition-colors">Carregar Arquivos</label>
         </div>
 
         <nav class="flex bg-black/40 p-1 rounded-lg border border-white/10">
@@ -30,31 +31,30 @@
         </nav>
         
         <div class="flex items-center gap-3">
-            <div class="flex flex-col items-end">
-                <input type="password" id="geminiKey" placeholder="Chave IA (Opcional)" class="bg-black/40 border border-white/10 rounded px-2 py-1 text-[9px] w-32 text-white outline-none">
-            </div>
+            <input type="password" id="geminiKey" placeholder="Chave Gemini IA" class="bg-black/40 border border-white/10 rounded px-2 py-1 text-[10px] w-32 text-white outline-none focus:border-blue-500">
             <div class="h-8 w-[1px] bg-white/10"></div>
-            <button onclick="exportExcel()" class="bg-emerald-600/20 text-emerald-500 border border-emerald-600/30 text-[9px] font-bold px-3 py-2 rounded hover:bg-emerald-600 hover:text-white transition-all">BAIXAR EXCEL</button>
-            <button onclick="exportPDF()" class="bg-red-600/20 text-red-500 border border-red-600/30 text-[9px] font-bold px-3 py-2 rounded hover:bg-red-600 hover:text-white transition-all">BAIXAR PDF</button>
+            <button onclick="exportExcel()" class="bg-emerald-600/20 text-emerald-500 border border-emerald-600/30 text-[9px] font-bold px-3 py-2 rounded hover:bg-emerald-600 hover:text-white transition-all">EXCEL</button>
+            <button onclick="exportPDF()" class="bg-red-600/20 text-red-500 border border-red-600/30 text-[9px] font-bold px-3 py-2 rounded hover:bg-red-600 hover:text-white transition-all">PDF</button>
         </div>
     </header>
 
     <main class="flex-1 relative overflow-hidden">
         <div id="tab-charts" class="tab-content active overflow-y-auto p-8">
             <div class="max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-6">
-                <div class="kpi-card"><p class="kpi-label">Diferenças vs Acertos</p><canvas id="chartStatus"></canvas></div>
-                <div class="kpi-card"><p class="kpi-label">Top 5 Cidades</p><canvas id="chartCities"></canvas></div>
-                <div class="kpi-card"><p class="kpi-label">Situação das Matrículas</p><canvas id="chartStatusPie"></canvas></div>
-                <div class="kpi-card border-l-4 border-blue-500">
-                    <p class="kpi-label">Total de Linhas lidas</p>
+                <div class="kpi-card"><p class="kpi-label">Diferenças vs Acertos</p><div class="h-48"><canvas id="chartStatus"></canvas></div></div>
+                <div class="kpi-card"><p class="kpi-label">Top 5 Cidades</p><div class="h-48"><canvas id="chartCities"></canvas></div></div>
+                <div class="kpi-card"><p class="kpi-label">Status Geral</p><div class="h-48"><canvas id="chartStatusPie"></canvas></div></div>
+                
+                <div class="kpi-card border-l-4 border-blue-500 flex flex-col justify-center">
+                    <p class="kpi-label">Total Processado</p>
                     <h2 id="kpiRows" class="text-3xl font-bold text-white">0</h2>
                 </div>
-                <div class="kpi-card border-l-4 border-orange-500">
-                    <p class="kpi-label">Divergências (Para Corrigir)</p>
+                <div class="kpi-card border-l-4 border-orange-500 flex flex-col justify-center">
+                    <p class="kpi-label">Divergências</p>
                     <h2 id="kpiDiffs" class="text-3xl font-bold text-orange-500">0</h2>
                 </div>
-                <div class="kpi-card border-l-4 border-emerald-500">
-                    <p class="kpi-label">Dados Idênticos</p>
+                <div class="kpi-card border-l-4 border-emerald-500 flex flex-col justify-center">
+                    <p class="kpi-label">Dados Validados</p>
                     <h2 id="kpiEquals" class="text-3xl font-bold text-emerald-500">0</h2>
                 </div>
             </div>
@@ -62,29 +62,35 @@
 
         <div id="tab-table" class="tab-content h-full p-4">
             <div class="max-w-full mx-auto h-full flex flex-col bg-[#0f172a] rounded-lg border border-white/5 shadow-2xl">
-                <div class="p-3 border-b border-white/5 flex justify-between">
-                    <span class="text-[10px] font-bold uppercase self-center text-slate-500">As linhas em <span class="text-orange-500">Laranja</span> indicam onde você deve conferir o Excel</span>
-                    <select id="viewFilter" onchange="applyFilters()" class="bg-black text-white text-[10px] p-1 border border-white/20 rounded">
-                        <option value="all">Ver Tudo</option>
-                        <option value="diff">Ver só Erros</option>
+                <div class="p-3 border-b border-white/5 flex justify-between items-center">
+                    <span class="text-[10px] font-bold uppercase text-slate-500">Destaque em <span class="text-orange-500">Laranja</span>: Necessita revisão manual</span>
+                    <select id="viewFilter" onchange="applyFilters()" class="bg-black text-white text-[10px] p-1 border border-white/20 rounded outline-none">
+                        <option value="all">Ver Todos os Registros</option>
+                        <option value="diff">Apenas Divergências</option>
                     </select>
                 </div>
-                <div class="table-container overflow-auto flex-1"><table id="mainTable"><thead id="tableHeader"></thead><tbody id="tableBody"></tbody></table></div>
+                <div class="table-container overflow-auto flex-1">
+                    <table id="mainTable">
+                        <thead id="tableHeader"></thead>
+                        <tbody id="tableBody"></tbody>
+                    </table>
+                </div>
             </div>
         </div>
 
         <div id="tab-ai" class="tab-content h-full p-10">
             <div class="max-w-4xl mx-auto bg-[#161c2d] border border-purple-500/20 rounded-xl p-8 shadow-2xl h-full flex flex-col">
                 <div class="flex items-center justify-between mb-4 border-b border-white/5 pb-2">
-                    <h2 class="text-purple-400 font-bold uppercase text-xs">Parecer Técnico da Inteligência Artificial</h2>
-                    <div id="aiLoader" class="hidden animate-pulse text-[9px] text-purple-300 italic">IA EXTRAINDO RELATÓRIO...</div>
+                    <h2 class="text-purple-400 font-bold uppercase text-xs tracking-widest">Parecer Técnico IA</h2>
+                    <div id="aiLoader" class="hidden animate-pulse text-[9px] text-purple-300 italic uppercase">Processando análise profunda...</div>
                 </div>
-                <div id="aiTxt" class="flex-1 overflow-y-auto pr-4 text-sm text-slate-300 leading-relaxed space-y-4">
-                    Importe os arquivos para ver a análise automática aqui.
+                <div id="aiTxt" class="flex-1 overflow-y-auto pr-4 text-sm text-slate-300 leading-relaxed space-y-4 font-light">
+                    Carregue os arquivos para gerar o relatório automático.
                 </div>
             </div>
         </div>
     </main>
+
     <script src="script.js"></script>
 </body>
 </html>

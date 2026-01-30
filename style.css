@@ -1,10 +1,10 @@
 /* =========================================
-   BI.ENTERPRISE - CORE CSS (ULTRA-DENSITY)
+   BI.ENTERPRISE - CORE DESIGN SYSTEM
    ========================================= */
 
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=JetBrains+Mono:wght@500&display=swap');
 
-/* 1. Reset e Bloqueio de Scroll Externo */
+/* 1. Reset & Layout Base */
 * { 
     box-sizing: border-box; 
     margin: 0; 
@@ -18,13 +18,13 @@ body {
     height: 100vh;
     display: flex;
     flex-direction: column;
-    overflow: hidden; /* Impede que a página inteira role */
+    overflow: hidden; /* Impede scroll na página inteira para focar na tabela */
 }
 
-/* 2. Scrollbars Personalizadas (Estilo Dark) */
+/* 2. Barra de Rolagem Customizada (Estilo Dark) */
 ::-webkit-scrollbar { 
-    width: 8px; 
-    height: 8px; 
+    width: 10px; 
+    height: 10px; 
 }
 
 ::-webkit-scrollbar-track { 
@@ -33,7 +33,7 @@ body {
 
 ::-webkit-scrollbar-thumb { 
     background: #1e293b; 
-    border-radius: 4px; 
+    border-radius: 5px; 
     border: 2px solid #0f172a; 
 }
 
@@ -41,43 +41,23 @@ body {
     background: #3b82f6; 
 }
 
-/* 3. Layout Principal */
-main {
-    display: flex;
-    flex: 1;
-    overflow: hidden; /* Garante que as rolagens fiquem nos filhos */
-}
-
-/* Sidebar com Rolagem Vertical Independente */
-aside {
-    width: 300px;
-    background: rgba(15, 23, 42, 0.5);
-    border-right: 1px solid rgba(255, 255, 255, 0.05);
-    display: flex;
-    flex-direction: column;
-    overflow-y: auto; 
-    overflow-x: hidden;
-    padding: 20px;
-    gap: 25px;
-    flex-shrink: 0;
-}
-
-/* 4. Tabela com Rolagem Horizontal e Vertical */
+/* 3. Área da Tabela (O Coração do Dashboard) */
 .table-container {
     flex: 1;
-    overflow: auto; /* Ativa as duas barras de rolagem aqui */
+    overflow: auto; /* IMPORTANTE: Ativa rolagem vertical e lateral */
     background: #0b0f1a;
     position: relative;
+    border-top: 1px solid rgba(255, 255, 255, 0.05);
 }
 
 table {
     width: 100%;
     border-collapse: collapse;
     font-size: 11px;
-    table-layout: auto;
+    table-layout: auto; /* Permite que colunas se ajustem ao conteúdo */
 }
 
-/* Fixar o Cabeçalho (Sticky Header) */
+/* Fixação do Cabeçalho (Sticky Header) */
 th {
     position: sticky;
     top: 0;
@@ -88,57 +68,68 @@ th {
     text-transform: uppercase;
     padding: 12px 10px;
     text-align: left;
-    z-index: 40;
+    z-index: 50; /* Garante que fique acima dos dados ao rolar */
     border-bottom: 1px solid rgba(255, 255, 255, 0.1);
     white-space: nowrap;
 }
 
 td {
-    padding: 10px;
+    padding: 8px 10px;
     border-bottom: 1px solid rgba(255, 255, 255, 0.02);
-    white-space: nowrap;
-    max-width: 400px;
-    overflow: hidden;
-    text-overflow: ellipsis;
+    white-space: nowrap; /* Impede quebra de linha para manter a tabela compacta */
 }
 
-/* 5. Alertas e Divergências (Laranjas) */
+/* 4. Estados e Alertas (Laranja e Erros) */
 .diff-row {
-    background: rgba(245, 158, 11, 0.04); /* Fundo sutil para a linha */
+    background: rgba(245, 158, 11, 0.05); /* Fundo sutil para divergências */
 }
 
-.text-yellow-500 {
-    color: #f59e0b !important; /* Destaque para o texto divergente */
+.text-orange-500 {
+    color: #f59e0b !important; 
     font-weight: 700;
 }
 
 tr:hover td {
     background: rgba(59, 130, 246, 0.05);
     color: #fff;
+    cursor: default;
 }
 
-/* 6. KPIs e UI */
+/* 5. Componentes de UI (KPIs e Sidebar) */
 .kpi-card {
     background: rgba(15, 23, 42, 0.4);
     padding: 15px;
     border-radius: 4px;
     border: 1px solid rgba(255, 255, 255, 0.05);
+    display: flex;
+    flex-direction: column;
 }
 
-.kpi-label {
+.kpi-title {
     text-transform: uppercase;
     font-size: 8px;
-    font-weight: 700;
+    font-weight: 800;
     color: #64748b;
-    margin-bottom: 4px;
+    margin-bottom: 5px;
+    letter-spacing: 0.05em;
 }
 
-.kpi-value {
-    font-size: 18px;
+.kpi-val {
     font-family: 'JetBrains Mono', monospace;
+    font-size: 22px;
+    font-weight: 600;
 }
 
-/* Garante que o gráfico se ajuste ao container da sidebar */
+/* Sidebar com scroll independente para gráficos */
+aside {
+    width: 300px;
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding: 20px;
+    background: rgba(15, 23, 42, 0.2);
+    border-right: 1px solid rgba(255, 255, 255, 0.05);
+}
+
 canvas {
     max-width: 100% !important;
 }

@@ -1,26 +1,27 @@
-@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap');
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
-body { font-family: 'Plus Jakarta Sans', sans-serif; background: #0b0f1a; }
+body { font-family: 'Plus Jakarta Sans', sans-serif; }
 
+/* Navegação */
+.nav-link { 
+    padding: 10px 24px; font-size: 10px; font-weight: 800; color: #64748b; 
+    border-radius: 12px; transition: 0.3s cubic-bezier(0.4, 0, 0.2, 1); 
+}
+.nav-link.active { color: #fff; background: #3b82f6; box-shadow: 0 8px 16px rgba(59, 130, 246, 0.2); }
+
+/* Conteúdo das Abas */
 .tab-content { display: none; height: 100%; position: absolute; width: 100%; top: 0; left: 0; }
-.tab-content.active { display: block; animation: slideUp 0.3s ease-out; }
+.tab-content.active { display: block; animation: slideIn 0.4s ease-out; }
 
-.tab-btn { padding: 10px 20px; font-size: 10px; font-weight: 800; color: #64748b; border-radius: 10px; transition: 0.2s; }
-.tab-btn.active { color: #fff; background: #3b82f6; box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3); }
+/* Cards e Boxes */
+.kpi-card { background: #0f172a; padding: 30px; border-radius: 24px; border: 1px solid rgba(255,255,255,0.05); }
+.kpi-card span { font-size: 10px; font-weight: 800; text-transform: uppercase; color: #64748b; margin-bottom: 8px; display: block; }
+.kpi-card h2 { font-size: 32px; font-weight: 800; color: #fff; }
 
-.kpi-card-new { background: #0f172a; padding: 24px; border-radius: 20px; border: 1px solid rgba(255,255,255,0.05); }
-.kpi-card-new span { font-size: 10px; font-weight: 800; text-transform: uppercase; color: #64748b; display: block; margin-bottom: 5px; }
-.kpi-card-new h2 { font-size: 28px; font-weight: 800; color: #fff; }
+.chart-box { background: rgba(15, 23, 42, 0.6); padding: 30px; border-radius: 32px; border: 1px solid rgba(255,255,255,0.05); backdrop-filter: blur(10px); }
+.chart-box h3 { font-size: 11px; font-weight: 800; text-transform: uppercase; color: #fff; opacity: 0.6; margin-bottom: 25px; }
+.chart-h { height: 300px; position: relative; }
 
-.chart-box { background: rgba(15, 23, 42, 0.5); padding: 24px; border-radius: 24px; border: 1px solid rgba(255,255,255,0.05); }
-.chart-box h3 { font-size: 11px; font-weight: 800; color: #fff; text-transform: uppercase; margin-bottom: 20px; opacity: 0.6; }
-.chart-wrapper { position: relative; height: 260px; width: 100%; }
-
-.custom-scroll::-webkit-scrollbar { width: 4px; height: 4px; }
-.custom-scroll::-webkit-scrollbar-thumb { background: #1e293b; border-radius: 10px; }
-
-th { font-size: 10px; font-weight: 800; text-transform: uppercase; color: #64748b; }
-td { font-size: 11px; white-space: nowrap; }
-
-@keyframes slideUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+/* Animações */
+@keyframes slideIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }

@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>BI.Enterprise - Auditoria & Finanças</title>
+    <title>BI.Enterprise - Auditoria de Dados</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
@@ -16,10 +16,8 @@
     <header class="h-14 border-b border-white/5 flex items-center justify-between px-6 bg-[#0f172a] shrink-0">
         <div class="flex items-center gap-6">
             <h1 class="text-white font-bold tracking-tighter text-sm uppercase">BI.Enterprise</h1>
-            <div class="flex items-center gap-2">
-                <input type="file" id="fileInput" class="hidden" multiple>
-                <label for="fileInput" class="bg-blue-600 hover:bg-blue-500 text-white text-[10px] font-bold px-3 py-1.5 rounded cursor-pointer transition uppercase">Carregar Dados</label>
-            </div>
+            <input type="file" id="fileInput" class="hidden" multiple>
+            <label for="fileInput" class="bg-blue-600 hover:bg-blue-500 text-white text-[10px] font-bold px-3 py-1.5 rounded cursor-pointer uppercase">Carregar XLSX</label>
         </div>
         <div class="flex items-center gap-3">
             <div class="flex items-center gap-2 px-3 py-1 bg-white/5 rounded border border-white/10">
@@ -32,15 +30,15 @@
                 <option value="related">RELACIONADAS</option>
             </select>
             <div id="exportGroup" class="hidden flex items-center gap-2">
-                <button onclick="exportExcel()" class="bg-emerald-600 hover:bg-emerald-500 text-white text-[10px] font-bold px-3 py-1.5 rounded uppercase">Excel</button>
-                <button onclick="exportPDF()" class="bg-red-600 hover:bg-red-500 text-white text-[10px] font-bold px-3 py-1.5 rounded uppercase">PDF</button>
+                <button id="btnExcel" class="bg-emerald-600 hover:bg-emerald-500 text-white text-[10px] font-bold px-3 py-1.5 rounded uppercase">Excel</button>
+                <button id="btnPDF" class="bg-red-600 hover:bg-red-500 text-white text-[10px] font-bold px-3 py-1.5 rounded uppercase">PDF</button>
             </div>
             <button onclick="location.reload()" class="text-[10px] hover:text-red-400 uppercase">Resetar</button>
         </div>
     </header>
 
     <main class="flex-1 flex overflow-hidden">
-        <aside class="w-72 border-r border-white/5 bg-[#0f172a]/50 p-4 flex flex-col gap-6 overflow-y-auto overflow-x-hidden">
+        <aside class="w-72 border-r border-white/5 bg-[#0f172a]/50 p-4 flex flex-col gap-6 overflow-y-auto">
             <div>
                 <p class="text-[9px] font-bold text-slate-500 uppercase tracking-widest mb-4">Saúde dos Dados</p>
                 <div class="h-44 relative"><canvas id="chartDiff"></canvas></div>
@@ -63,7 +61,7 @@
                     <h2 id="totalDiffs" class="kpi-value text-yellow-500">0</h2>
                 </div>
                 <div class="kpi-card border-l-2 border-emerald-500">
-                    <p class="kpi-label">Conformidade</p>
+                    <p class="kpi-label">Acuracidade</p>
                     <h2 id="accuracyRate" class="kpi-value text-emerald-500">0%</h2>
                 </div>
                 <div class="kpi-card border-l-2 border-purple-500">

@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="pt-br">
+<html lang="pt-pt">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -7,6 +7,8 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js"></script>
     <link rel="stylesheet" href="style.css">
 </head>
 <body class="bg-[#0b0f1a] text-slate-400 overflow-hidden h-screen flex flex-col">
@@ -16,8 +18,8 @@
             <h1 class="text-white font-bold tracking-tighter text-sm uppercase">BI.Minimalist</h1>
             <div class="flex items-center gap-2">
                 <input type="file" id="fileInput" class="hidden" multiple>
-                <label for="fileInput" class="bg-blue-600 hover:bg-blue-500 text-white text-[10px] font-bold px-3 py-1.5 rounded cursor-pointer transition uppercase">Carregar XLSX</label>
-                <span id="fileStatus" class="text-[10px] opacity-50 uppercase">0 Arquivos</span>
+                <label for="fileInput" class="bg-blue-600 hover:bg-blue-500 text-white text-[10px] font-bold px-3 py-1.5 rounded cursor-pointer transition uppercase">Carregar Ficheiros</label>
+                <span id="fileStatus" class="text-[10px] opacity-50 uppercase">0 Ficheiros</span>
             </div>
         </div>
         <div class="flex items-center gap-3">
@@ -25,7 +27,10 @@
                 <option value="all">TODOS OS DADOS</option>
                 <option value="diff">SÓ DIVERGÊNCIAS</option>
             </select>
-            <button id="btnExport" class="hidden bg-emerald-600 hover:bg-emerald-500 text-white text-[10px] font-bold px-3 py-1.5 rounded uppercase">Exportar</button>
+            <div id="exportGroup" class="hidden flex items-center gap-2">
+                <button onclick="exportExcel()" class="bg-emerald-600 hover:bg-emerald-500 text-white text-[10px] font-bold px-3 py-1.5 rounded uppercase">Excel</button>
+                <button onclick="exportPDF()" class="bg-red-600 hover:bg-red-500 text-white text-[10px] font-bold px-3 py-1.5 rounded uppercase">PDF</button>
+            </div>
             <button id="btnClear" class="text-[10px] hover:text-red-400 transition uppercase">Limpar</button>
         </div>
     </header>
@@ -33,11 +38,11 @@
     <main class="flex-1 flex overflow-hidden">
         <aside class="w-64 border-r border-white/5 bg-[#0f172a]/50 p-4 flex flex-col gap-6">
             <div>
-                <p class="text-[9px] font-bold text-slate-500 uppercase tracking-widest mb-4">Proporção de Saúde</p>
+                <p class="text-[9px] font-bold text-slate-500 uppercase tracking-widest mb-4">Saúde dos Dados</p>
                 <div class="h-40"><canvas id="chartDiff"></canvas></div>
             </div>
             <div class="flex-1 border-t border-white/5 pt-4">
-                <p class="text-[9px] font-bold text-slate-500 uppercase tracking-widest mb-2">Análise de Objetos</p>
+                <p class="text-[9px] font-bold text-slate-500 uppercase tracking-widest mb-2">Análise por Coluna</p>
                 <select id="columnAnalytic" class="w-full bg-slate-800 text-[9px] p-1 rounded mb-3 outline-none text-white"></select>
                 <div class="h-40"><canvas id="chartColumns"></canvas></div>
             </div>
@@ -46,7 +51,7 @@
         <section class="flex-1 flex flex-col bg-[#0b0f1a]">
             <div class="grid grid-cols-4 gap-4 p-4 border-b border-white/5 bg-[#0f172a]/20">
                 <div class="p-2 border border-white/5 rounded">
-                    <p class="text-[8px] uppercase font-bold text-slate-500">Linhas Totais</p>
+                    <p class="text-[8px] uppercase font-bold text-slate-500">Registos Totais</p>
                     <h2 id="totalRows" class="text-lg font-mono text-white">0</h2>
                 </div>
                 <div class="p-2 border border-white/5 rounded">
@@ -58,18 +63,18 @@
                     <h2 id="accuracyRate" class="text-lg font-mono text-emerald-500">0%</h2>
                 </div>
                 <div class="p-2 border border-white/5 rounded">
-                    <p class="text-[8px] uppercase font-bold text-blue-500">Colunas</p>
+                    <p class="text-[8px] uppercase font-bold text-blue-500">Nº Colunas</p>
                     <h2 id="totalCols" class="text-lg font-mono text-blue-500">0</h2>
                 </div>
             </div>
 
             <div class="p-2 px-4 border-b border-white/5 flex items-center justify-between">
-                <input type="text" id="tableSearch" placeholder="FILTRAR REGISTROS..." class="bg-transparent border-none text-xs w-full outline-none text-white placeholder:text-slate-600">
+                <input type="text" id="tableSearch" placeholder="PESQUISAR NA TABELA..." class="bg-transparent border-none text-xs w-full outline-none text-white placeholder:text-slate-600">
                 <div id="diffCounter" class="text-[10px] whitespace-nowrap text-yellow-500 font-mono uppercase">0 Divergências</div>
             </div>
             
             <div class="table-wrapper flex-1 overflow-auto">
-                <table>
+                <table id="mainTable">
                     <thead id="tableHeader"></thead>
                     <tbody id="tableBody"></tbody>
                 </table>

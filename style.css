@@ -1,135 +1,44 @@
-/* =========================================
-   BI.ENTERPRISE - CORE DESIGN SYSTEM
-   ========================================= */
-
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=JetBrains+Mono:wght@500&display=swap');
 
-/* 1. Reset & Layout Base */
-* { 
-    box-sizing: border-box; 
-    margin: 0; 
-    padding: 0; 
-}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: 'Inter', sans-serif; background: #0b0f1a; color: #94a3b8; height: 100vh; overflow: hidden; display: flex; flex-direction: column; }
 
-body { 
-    font-family: 'Inter', sans-serif; 
-    background-color: #0b0f1a; 
-    color: #94a3b8;
-    height: 100vh;
-    display: flex;
-    flex-direction: column;
-    overflow: hidden; /* Impede scroll na página inteira para focar na tabela */
-}
+/* BARRA DE ROLAGEM CUSTOMIZADA */
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-track { background: #0f172a; }
+::-webkit-scrollbar-thumb { background: #1e293b; border-radius: 5px; border: 2px solid #0f172a; }
+::-webkit-scrollbar-thumb:hover { background: #3b82f6; }
 
-/* 2. Barra de Rolagem Customizada (Estilo Dark) */
-::-webkit-scrollbar { 
-    width: 10px; 
-    height: 10px; 
-}
-
-::-webkit-scrollbar-track { 
-    background: #0f172a; 
-}
-
-::-webkit-scrollbar-thumb { 
-    background: #1e293b; 
-    border-radius: 5px; 
-    border: 2px solid #0f172a; 
-}
-
-::-webkit-scrollbar-thumb:hover { 
-    background: #3b82f6; 
-}
-
-/* 3. Área da Tabela (O Coração do Dashboard) */
+/* CONTAINER DA TABELA COM ROLAGEM DUPLA */
 .table-container {
     flex: 1;
-    overflow: auto; /* IMPORTANTE: Ativa rolagem vertical e lateral */
+    overflow: auto; /* Ativa scroll horizontal e vertical */
     background: #0b0f1a;
-    position: relative;
     border-top: 1px solid rgba(255, 255, 255, 0.05);
 }
 
-table {
-    width: 100%;
-    border-collapse: collapse;
-    font-size: 11px;
-    table-layout: auto; /* Permite que colunas se ajustem ao conteúdo */
-}
+table { width: 100%; border-collapse: collapse; font-size: 11px; table-layout: auto; }
 
-/* Fixação do Cabeçalho (Sticky Header) */
+/* CABEÇALHO FIXO */
 th {
     position: sticky;
     top: 0;
     background: #161c2d;
-    color: #475569;
-    font-size: 9px;
-    font-weight: 700;
-    text-transform: uppercase;
     padding: 12px 10px;
-    text-align: left;
-    z-index: 50; /* Garante que fique acima dos dados ao rolar */
+    z-index: 50;
+    color: #475569;
+    text-transform: uppercase;
+    font-size: 9px;
     border-bottom: 1px solid rgba(255, 255, 255, 0.1);
     white-space: nowrap;
 }
 
-td {
-    padding: 8px 10px;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.02);
-    white-space: nowrap; /* Impede quebra de linha para manter a tabela compacta */
-}
+td { padding: 8px 10px; border-bottom: 1px solid rgba(255, 255, 255, 0.02); white-space: nowrap; }
 
-/* 4. Estados e Alertas (Laranja e Erros) */
-.diff-row {
-    background: rgba(245, 158, 11, 0.05); /* Fundo sutil para divergências */
-}
+/* DESTAQUE DE DIVERGÊNCIA */
+.diff-row { background: rgba(245, 158, 11, 0.05); }
+.text-orange { color: #f59e0b !important; font-weight: 700; }
 
-.text-orange-500 {
-    color: #f59e0b !important; 
-    font-weight: 700;
-}
-
-tr:hover td {
-    background: rgba(59, 130, 246, 0.05);
-    color: #fff;
-    cursor: default;
-}
-
-/* 5. Componentes de UI (KPIs e Sidebar) */
-.kpi-card {
-    background: rgba(15, 23, 42, 0.4);
-    padding: 15px;
-    border-radius: 4px;
-    border: 1px solid rgba(255, 255, 255, 0.05);
-    display: flex;
-    flex-direction: column;
-}
-
-.kpi-title {
-    text-transform: uppercase;
-    font-size: 8px;
-    font-weight: 800;
-    color: #64748b;
-    margin-bottom: 5px;
-    letter-spacing: 0.05em;
-}
-
-.kpi-val {
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 22px;
-    font-weight: 600;
-}
-
-/* Sidebar com scroll independente para gráficos */
-aside {
-    width: 300px;
-    overflow-y: auto;
-    overflow-x: hidden;
-    padding: 20px;
-    background: rgba(15, 23, 42, 0.2);
-    border-right: 1px solid rgba(255, 255, 255, 0.05);
-}
-
-canvas {
-    max-width: 100% !important;
-}
+/* SIDEBAR E CARDS */
+aside { width: 300px; background: rgba(15, 23, 42, 0.5); border-right: 1px solid rgba(255, 255, 255, 0.05); overflow-y: auto; padding: 20px; }
+.kpi-card { background: rgba(15, 23, 42, 0.4); padding: 15px; border-radius: 4px; border: 1px solid rgba(255, 255, 255, 0.05); }

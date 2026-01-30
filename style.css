@@ -1,10 +1,10 @@
 /* =========================================
-   BI.ENTERPRISE - CSS CORE (ULTRA-DENSITY)
+   BI.ENTERPRISE - CSS COMPLETO (SISTEMA DE ROLAGEM)
    ========================================= */
 
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=JetBrains+Mono:wght@500&display=swap');
 
-/* 1. Reset & Estrutura Base */
+/* 1. Estrutura Global e Bloqueio de Scroll Externo */
 * { 
     box-sizing: border-box; 
     margin: 0; 
@@ -18,79 +18,52 @@ body {
     height: 100vh;
     display: flex;
     flex-direction: column;
-    overflow: hidden; /* Impede scroll no body, foca nos containers */
+    overflow: hidden; /* Mantém tudo dentro da janela */
 }
 
-/* 2. Header & Top Bar */
+/* 2. Cabeçalho (Header) */
 header {
     background: #0f172a;
     border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    height: 56px;
     flex-shrink: 0;
     z-index: 50;
 }
 
-/* 3. Sidebar de Análise (Fixa e Scrollável) */
+/* 3. Layout Principal (Main) com Rolagem Independente */
+main {
+    display: flex;
+    flex: 1;
+    overflow: hidden; /* Garante que as rolagens fiquem nos filhos */
+}
+
+/* Sidebar: Gráficos e Análise */
 aside {
+    width: 300px;
     background: rgba(15, 23, 42, 0.5);
     border-right: 1px solid rgba(255, 255, 255, 0.05);
-    overflow-y: auto; /* Permite scroll se os gráficos forem muitos */
-}
-
-/* Ajuste para Gráficos Horizontais */
-canvas {
-    max-width: 100% !important;
-    max-height: 100% !important;
-}
-
-/* 4. Grid de KPIs Empresariais */
-.kpi-card {
-    background: rgba(15, 23, 42, 0.4);
-    padding: 15px;
-    border-radius: 4px;
-    border: 1px solid rgba(255, 255, 255, 0.05);
     display: flex;
     flex-direction: column;
-    justify-content: center;
+    overflow-y: auto; /* Barra de rolagem vertical para gráficos longos */
+    overflow-x: hidden;
+    padding: 20px;
+    gap: 30px;
 }
 
-.kpi-label {
-    text-transform: uppercase;
-    font-size: 9px;
-    font-weight: 700;
-    color: #64748b;
-    letter-spacing: 0.05em;
-    margin-bottom: 4px;
+/* Área da Tabela e KPIs */
+section.content-area {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    background: #0b0f1a;
+    overflow: hidden;
 }
 
-.kpi-value {
-    font-size: 20px;
-    font-family: 'JetBrains Mono', monospace;
-    font-weight: 500;
-}
-
-/* 5. Toolbar & Filtros */
-.toolbar-enterprise {
-    background: rgba(15, 23, 42, 0.3);
-    min-height: 40px;
-}
-
-.search-input {
-    background: transparent;
-    border: none;
-    outline: none;
-    color: #fff;
-    font-size: 11px;
-    width: 300px;
-}
-
-.search-input::placeholder {
-    color: #334155;
-}
-
-/* 6. Tabela de Alta Performance (4000+ linhas) */
+/* 4. Tabela com Barras de Rolagem */
 .table-container {
     flex: 1;
-    overflow: auto;
+    overflow: auto; /* Ativa scroll horizontal e vertical para milhares de linhas */
+    background: #0b0f1a;
     position: relative;
 }
 
@@ -98,9 +71,10 @@ table {
     width: 100%;
     border-collapse: collapse;
     font-size: 11px;
-    table-layout: auto; /* Auto para se adaptar a colunas variadas */
+    table-layout: auto;
 }
 
+/* Fixar o Cabeçalho da Tabela ao Rolar */
 th {
     position: sticky;
     top: 0;
@@ -111,11 +85,12 @@ th {
     text-transform: uppercase;
     padding: 12px 10px;
     text-align: left;
-    z-index: 20;
+    z-index: 40;
     border-bottom: 1px solid rgba(255, 255, 255, 0.05);
     white-space: nowrap;
 }
 
+/* Células e Alinhamento */
 td {
     padding: 8px 10px;
     border-bottom: 1px solid rgba(255, 255, 255, 0.02);
@@ -125,9 +100,14 @@ td {
     text-overflow: ellipsis;
 }
 
-/* 7. Estados de Divergência e Hover */
+/* 5. Estilização dos "Laranjas" (Divergências) */
 .diff-row {
-    background: rgba(245, 158, 11, 0.03); /* Laranja sutil para a linha toda */
+    background: rgba(245, 158, 11, 0.03); /* Fundo de alerta sutil */
+}
+
+.text-yellow-500 {
+    color: #f59e0b !important; /* Destaque para setas e valores diferentes */
+    font-weight: 600;
 }
 
 tr:hover td {
@@ -135,36 +115,41 @@ tr:hover td {
     color: #fff;
 }
 
-.text-yellow-500 {
-    color: #f59e0b !important;
-    font-weight: 600;
-}
-
-/* 8. Scrollbar Customizada (Estilo Dark) */
+/* 6. Customização das Barras de Rolagem (Estilo BI Moderno) */
 ::-webkit-scrollbar {
-    width: 6px;
-    height: 6px;
+    width: 8px;  /* Barra vertical */
+    height: 8px; /* Barra horizontal */
 }
 
 ::-webkit-scrollbar-track {
-    background: transparent;
+    background: #0b0f1a;
 }
 
 ::-webkit-scrollbar-thumb {
     background: #1e293b;
-    border-radius: 10px;
+    border-radius: 4px;
+    border: 2px solid #0b0f1a;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-    background: #3b82f6;
+    background: #3b82f6; /* Feedback visual ao interagir */
 }
 
-/* 9. Elementos de UI Extras */
-select {
-    cursor: pointer;
-    transition: all 0.2s ease;
+/* 7. KPIs e Cards Superiores */
+.kpi-card {
+    background: rgba(15, 23, 42, 0.4);
+    padding: 15px;
+    border-radius: 4px;
+    border: 1px solid rgba(255, 255, 255, 0.05);
 }
 
-button:active {
-    transform: scale(0.98);
+.kpi-value {
+    font-size: 20px;
+    font-family: 'JetBrains Mono', monospace;
+}
+
+/* 8. Ajustes para Gráficos e Sidebar */
+.chart-container {
+    min-height: 200px;
+    width: 100%;
 }
